@@ -232,10 +232,12 @@ with c_l1:
     fig_lin.update_layout(height=300, template="plotly_dark", yaxis_title=lab_lin)
     st.plotly_chart(fig_lin, use_container_width=True)
 
-import streamlit as st
-import numpy as np
-import plotly.graph_objects as go
-from scipy.integrate import odeint
+
+
+
+
+
+
 
 st.set_page_config(page_title="Laboratório de Cinética Prof", layout="wide")
 
