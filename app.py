@@ -161,7 +161,11 @@ with bg:
     if st.button("🚀 Gravar Curva", key="K21_BTN_GRAVAR"):
         tc = np.linspace(0, t_max, 1000)
         sc = odeint(lambda y, t, k, n: [-k*(y[0]**n)], [c_comp], tc, args=(k_comp, n_comp))
-        st.session_state.historico.append({'t': tc, 'y': sc[:, 0], 'label': f"Ordem {n_comp} | [A]₀ {c_comp}"})
+        
+        # --- Legenda formatada e organizada ---
+        legenda_organizada = f"Ordem: {n_comp}  |  [A]₀: {c_comp:.2f}  |  k: {k_comp:.2f}"
+        
+        st.session_state.historico.append({'t': tc, 'y': sc[:, 0], 'label': legenda_organizada})
 with br:
     if st.button("🗑️ Resetar Histórico", key="K22_BTN_RESET"):
         st.session_state.historico = []
