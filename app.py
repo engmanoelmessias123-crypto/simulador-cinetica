@@ -5,7 +5,7 @@ from scipy.integrate import odeint
 
 st.set_page_config(page_title="Laboratório de Cinética Prof", layout="wide")
 
-# --- Lógica de Cálculo ---
+# --- Lógica de Cálculo (Equações Diferenciais) ---
 def modelo_cinetico(y, t, k, na, nb, tipo):
     A = y[0]
     B = y[1] if tipo == "A + B → Produto" else 0
@@ -14,14 +14,15 @@ def modelo_cinetico(y, t, k, na, nb, tipo):
     dPdt = velocidade
     return [dAdt, -velocidade, dPdt] if tipo == "A + B → Produto" else [dAdt, dPdt]
 
-# --- Sidebar ---
+# --- Sidebar: Configurações da Reação ---
 st.sidebar.title("Configurações")
 modelo = st.sidebar.radio("Tipo de Reação", ["A → Produto", "A + B → Produto"])
 k = st.sidebar.slider("Constante k", 0.01, 2.0, 0.45)
-a0 = st.sidebar.slider("[A]₀ Inicial", 0.1, 5.0, 2.0)
 ordem_a = st.sidebar.slider("Ordem em A", 0, 2, 1)
+a0 = st.sidebar.slider("[A]₀ Inicial", 0.1, 5.0, 2.0)
 t_max = st.sidebar.slider("Tempo Total", 10, 100, 50)
 
+# --- Resolução da Cinética ---
 t = np.linspace(0, t_max, 1000)
 if modelo == "A + B → Produto":
     b0 = st.sidebar.slider("[B]₀ Inicial", 0.1, 5.0, 2.0)
@@ -34,58 +35,94 @@ else:
     conc_a, conc_p = sol[:, 0], sol[:, 1]
     conc_b = np.zeros_like(t)
 
+# --- Sidebar: Opções de Exibição ---
 st.sidebar.divider()
-st.sidebar.subheader("🧮 Ferramentas")
+st.sidebar.subheader("👁️ Exibir no gráfico?")
+mostrar_a = st.sidebar.checkbox("Reagente [A] (Vermelho)", value=True)
+mostrar_b = st.sidebar.checkbox("Reagente [B] (Verde)", value=True) if modelo == "A + B → Produto" else False
+mostrar_p = st.sidebar.checkbox("Produto (Azul)", value=True)
+
+# --- Sidebar: Ferramentas Pedagógicas ---
+st.sidebar.divider()
+st.sidebar.subheader("🧮 Ferramentas de Cálculo")
 modo_calc = st.sidebar.selectbox("O que calcular?", ["Nenhum", "Velocidade Média", "Velocidade Instantânea"])
 
 reagente_alvo = "A"
 if modo_calc != "Nenhum" and modelo == "A + B → Produto":
-    reagente_alvo = st.sidebar.radio("Analisar qual?", ["A", "B"])
+    reagente_alvo = st.sidebar.radio("Qual reagente analisar?", ["A", "B"])
 
 conc_alvo = conc_a if reagente_alvo == "A" else conc_b
+nome_alvo = f"[{reagente_alvo}]"
 ordem_alvo = ordem_a if reagente_alvo == "A" else ordem_b
+mostrar_alvo = mostrar_a if reagente_alvo == "A" else mostrar_b
 
-# --- Gráfico Principal ---
+# --- Interface Principal ---
 st.title("🧪 Verificador de Velocidade Cinética")
 col1, col2 = st.columns([2, 1])
 
 fig = go.Figure()
-fig.add_trace(go.Scatter(x=t, y=conc_a, name="[A]", line=dict(color='red', width=3)))
-if modelo == "A + B → Produto":
+if mostrar_a:
+    fig.add_trace(go.Scatter(x=t, y=conc_a, name="[A]", line=dict(color='red', width=3)))
+if mostrar_b and modelo == "A + B → Produto":
     fig.add_trace(go.Scatter(x=t, y=conc_b, name="[B]", line=dict(color='green', width=3)))
-fig.add_trace(go.Scatter(x=t, y=conc_p, name="[Produto]", line=dict(color='blue', width=3)))
+if mostrar_p:
+    fig.add_trace(go.Scatter(x=t, y=conc_p, name="[Produto]", line=dict(color='blue', width=3)))
 
-# (Aqui entra a lógica das ferramentas que já tínhamos...)
-# ... [Mantendo os cálculos de VM e VI conforme os códigos anteriores] ...
+# --- Lógica das Ferramentas ("O Jogo") ---
+if modo_calc == "Velocidade Média":
+    with col2:
+        st.subheader(f"Velocidade Média de {nome_alvo}")
+        t1 = st.number_input("t1", 0.0, float(t_max), 5.0)
+        t2 = st.number_input("t2", 0.0, float(t_max), 15.0)
+        c1 = np.interp(t1, t, conc_alvo)
+        c2 = np.interp(t2, t, conc_alvo)
+        v_media = abs(c2 - c1) / (t2 - t1) if t2 != t1 else 0
+        st.latex(rf"v_m = \left| \frac{{\Delta {nome_alvo}}}{{\Delta t}} \right|")
+        if st.button("Revelar VM"):
+            st.success(rf"v_m = {v_media:.4f} M/s")
+    if mostrar_alvo:
+        fig.add_trace(go.Scatter(x=[t1, t2], y=[c1, c2], mode='markers+lines+text', name='Secante',
+                                 text=[f"{c1:.3f}M", f"{c2:.3f}M"], textfont=dict(color="yellow"),
+                                 line=dict(color='yellow', dash='dash')))
+
+elif modo_calc == "Velocidade Instantânea":
+    with col2:
+        st.subheader(f"Velocidade Instantânea de {nome_alvo}")
+        ti = st.slider("Instante (t)", 0.0, float(t_max), float(t_max/2))
+        ci = np.interp(ti, t, conc_alvo)
+        ai_v, bi_v = np.interp(ti, t, conc_a), np.interp(ti, t, conc_b)
+        vi = k * (ai_v**ordem_a) * (bi_v**ordem_b if modelo == "A + B → Produto" and ordem_b > 0 else 1)
+        slope = -vi
+        b_coef = ci - slope * ti
+        dt = t_max * 0.15
+        t_s, t_e = max(0, ti-dt), min(t_max, ti+dt)
+        c_s, c_e = ci + slope*(t_s-ti), ci + slope*(t_e-ti)
+        st.info(f"Δ{nome_alvo} = {c_e-c_s:.3f} M | Δt = {t_e-t_s:.3f} s")
+        if st.button("Revelar VI e Equação"):
+            st.success(rf"v = {vi:.4f} M/s")
+            st.latex(rf"{nome_alvo} = {slope:.4f}t {'+' if b_coef>=0 else '-'} {abs(b_coef):.4f}")
+    if mostrar_alvo:
+        fig.add_trace(go.Scatter(x=[t_s, t_e], y=[c_s, c_e], mode='lines', name='Tangente', line=dict(color='cyan')))
+        fig.add_trace(go.Scatter(x=[t_s, t_s, t_e], y=[c_s, c_e, c_e], mode='lines', showlegend=False, line=dict(color='cyan', dash='dot')))
 
 with col1:
-    fig.update_layout(title="Concentração vs Tempo", template="plotly_dark")
+    fig.update_layout(xaxis_title="Tempo (s)", yaxis_title="Molaridade (M)", template="plotly_dark")
     st.plotly_chart(fig, use_container_width=True)
 
-# --- NOVO: Gráfico de Linearização (Abaixo do principal) ---
+# --- NOVO: Gráfico de Linearização (Abaixo) ---
 st.divider()
-st.subheader(f"📈 Gráfico de Linearização para o Reagente {reagente_alvo}")
+st.subheader(f"📈 Análise de Linearização para {nome_alvo}")
+c_l1, c_l2 = st.columns([2, 1])
 
-col_lin1, col_lin2 = st.columns([2, 1])
-
-with col_lin1:
-    fig_lin = go.Figure()
-    if ordem_alvo == 0:
-        y_lin = conc_alvo
-        label_lin = f"[{reagente_alvo}]"
-    elif ordem_alvo == 1:
-        # Filtro para evitar log de zero
-        y_lin = np.log(conc_alvo + 1e-9)
-        label_lin = f"ln([{reagente_alvo}])"
-    else:
-        y_lin = 1 / (conc_alvo + 1e-9)
-        label_lin = f"1 / [{reagente_alvo}]"
+with c_l1:
+    if ordem_alvo == 0: y_lin, lab_lin = conc_alvo, f"{nome_alvo}"
+    elif ordem_alvo == 1: y_lin, lab_lin = np.log(conc_alvo + 1e-9), f"ln({nome_alvo})"
+    else: y_lin, lab_lin = 1 / (conc_alvo + 1e-9), f"1 / {nome_alvo}"
     
-    fig_lin.add_trace(go.Scatter(x=t, y=y_lin, name="Linearização", line=dict(color='orange', width=2)))
-    fig_lin.update_layout(height=350, xaxis_title="Tempo (s)", yaxis_title=label_lin, template="plotly_dark")
+    fig_lin = go.Figure(go.Scatter(x=t, y=y_lin, line=dict(color='orange', width=2)))
+    fig_lin.update_layout(height=350, xaxis_title="Tempo (s)", yaxis_title=lab_lin, template="plotly_dark")
     st.plotly_chart(fig_lin, use_container_width=True)
-
-with col_lin2:
-    st.write(f"**Análise de Ordem {ordem_alvo}**")
-    st.write(f"Este gráfico plota `{label_lin}` em função do tempo.")
-    st.info("💡 Se a reação for realmente desta ordem, os pontos formarão uma linha reta!")
+with c_l2:
+    st.write(f"**Ordem Experimental Detectada: {ordem_alvo}**")
+    st.write(f"Para ordem {ordem_alvo}, o gráfico de `{lab_lin}` vs tempo deve ser linear.")
+    st.info("💡 Peça para os alunos mudarem a ordem no slider e observarem qual gráfico 'estica' até virar uma reta!")
