@@ -80,7 +80,7 @@ if mostrar_p: fig_main.add_trace(go.Scatter(x=t, y=conc_p, name="[Produto]", lin
 # -------------------------------------------------------------
 if modo_calc == "Velocidade Média":
     with col2:
-        st.subheader(f"Cálculo da VM de {nome_alvo}")
+        st.subheader(f"Cálculo da Velocidade Média de {nome_alvo}")
         
         # Inputs de tempo
         t1 = st.number_input("Escolha t1", 0.0, float(t_max), min(5.0, float(t_max)), key="K24_LIN_T1")
@@ -110,7 +110,7 @@ if modo_calc == "Velocidade Média":
 
 elif modo_calc == "Velocidade Instantânea":
     with col2:
-        st.subheader(f"Cálculo da VI de {nome_alvo}")
+        st.subheader(f"Cálculo da Velocidade Instantânea de {nome_alvo}")
         ti = st.slider("Escolha o instante (t)", 0.0, float(t_max), float(t_max/2), key="K16_VI_TI")
         
         ci = np.interp(ti, t, conc_alvo)
