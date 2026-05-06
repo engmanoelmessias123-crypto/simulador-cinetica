@@ -175,8 +175,8 @@ with c_l2:
     st.write("### Encontre a Constante $k$")
     st.write("A inclinação ($m$) desta reta corresponde ao valor de **k**!")
     
-    t1_lin = st.number_input("Escolha t1", 0.0, float(t_max), 5.0, key="K23_LIN_T1")
-    t2_lin = st.number_input("Escolha t2", 0.0, float(t_max), 20.0, key="K24_LIN_T2")
+    t1_lin = st.number_input("Escolha t1", 0.0, float(t_max), min(5.0, float(t_max)), key="K23_LIN_T1")
+    t2_lin = st.number_input("Escolha t2", 0.0, float(t_max), min(10.0, float(t_max)), key="K24_LIN_T2")
     
     # Encontra o Y correspondente aos tempos escolhidos
     y1_lin = np.interp(t1_lin, t, y_lin)
