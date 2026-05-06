@@ -126,3 +126,40 @@ with c_l2:
     st.write(f"**Ordem Experimental Detectada: {ordem_alvo}**")
     st.write(f"Para ordem {ordem_alvo}, o gráfico de `{lab_lin}` vs tempo deve ser linear.")
     st.info("💡 Peça para os alunos mudarem a ordem no slider e observarem qual gráfico 'estica' até virar uma reta!")
+
+# --- NOVA SEÇÃO: Simulador de Comparação de Ordens ---
+st.divider()
+st.header("🔬 Simulador de Impacto da Ordem")
+st.write("Aqui você pode ver como a curvatura muda apenas alterando a ordem, mantendo o mesmo $k$ e $[A]_0$.")
+
+ordem_comparativa = st.select_slider(
+    "Aumente a Ordem da Reação:",
+    options=[0, 1, 2, 3]
+)
+
+# Cálculo simplificado para visualização de comparação
+def calculo_comparativo(y, t, k, n):
+    dAdt = -k * (y[0]**n)
+    return [dAdt]
+
+sol_comp = odeint(calculo_comparativo, [a0], t, args=(k, ordem_comparativa))
+conc_comp = sol_comp[:, 0]
+
+fig_comp = go.Figure()
+fig_comp.add_trace(go.Scatter(x=t, y=conc_comp, name=f"Ordem {ordem_comparativa}", line=dict(color='orange', width=4)))
+
+fig_comp.update_layout(
+    title=f"Comportamento do Reagente A com Ordem {ordem_comparativa}",
+    xaxis_title="Tempo (s)",
+    yaxis_title="Concentração [A]",
+    template="plotly_dark"
+)
+
+st.plotly_chart(fig_comp, use_container_width=True)
+
+if ordem_comparativa == 0:
+    st.info("💡 **Ordem 0**: A velocidade é constante. A concentração cai como uma linha reta.")
+elif ordem_comparativa == 1:
+    st.info("💡 **Ordem 1**: A velocidade depende de [A]. A curva é uma exponencial decrescente.")
+else:
+    st.info(f"💡 **Ordem {ordem_comparativa}**: A velocidade é extremamente sensível à concentração inicial. A curva 'mergulha' rápido e depois estabiliza devagar.")
