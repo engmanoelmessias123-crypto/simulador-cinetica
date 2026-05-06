@@ -5,17 +5,18 @@ from scipy.integrate import odeint
 
 st.set_page_config(page_title="Laboratório de Cinética Prof", layout="wide")
 
-# --- NOVO BLOCO: Ocultar o Cabeçalho Inteiro ---
+# --- NOVO BLOCO: Ocultar o Menu (Versão Definitiva) ---
 esconder_menu = """
     <style>
-    [data-testid="stHeader"] {display: none !important;}
-    [data-testid="stToolbar"] {display: none !important;}
-    #MainMenu {display: none !important;}
-    footer {display: none !important;}
+    #MainMenu {visibility: hidden !important;}
+    header {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+    .stApp [data-testid="stToolbar"] {display: none !important;}
+    [data-testid="stHeaderActionElements"] {display: none !important;}
     </style>
     """
 st.markdown(esconder_menu, unsafe_allow_html=True)
-# -------------------------------------------------
+# ------------------------------------------------------
 # --- Lógica de Cálculo ---
 def modelo_cinetico(y, t, k, na, nb, tipo):
     A = y[0]
