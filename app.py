@@ -127,15 +127,7 @@ with c_l2:
     st.write(f"Para ordem {ordem_alvo}, o gráfico de `{lab_lin}` vs tempo deve ser linear.")
     st.info("💡 Peça para os alunos mudarem a ordem no slider e observarem qual gráfico 'estica' até virar uma reta!")
 
-# --- NOVA SEÇÃO: Simulador de Comparação de Ordens ---
-st.divider()
-st.header("🔬 Simulador de Impacto da Ordem")
-st.write("Aqui você pode ver como a curvatura muda apenas alterando a ordem, mantendo o mesmo $k$ e $[A]_0$.")
 
-ordem_comparativa = st.select_slider(
-    "Aumente a Ordem da Reação:",
-    options=[0, 1, 2, 3]
-)
 
 # --- SEÇÃO: Comparador de Histórico (Curvas Gravadas) ---
 st.divider()
