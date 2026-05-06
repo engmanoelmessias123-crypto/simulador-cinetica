@@ -137,29 +137,63 @@ ordem_comparativa = st.select_slider(
     options=[0, 1, 2, 3]
 )
 
-# Cálculo simplificado para visualização de comparação
-def calculo_comparativo(y, t, k, n):
-    dAdt = -k * (y[0]**n)
-    return [dAdt]
+# --- SEÇÃO: Comparador de Histórico (Curvas Gravadas) ---
+st.divider()
+st.header("📚 Histórico de Comparação Cinética")
+st.write("Adicione curvas ao gráfico para comparar ordens e concentrações diferentes.")
 
-sol_comp = odeint(calculo_comparativo, [a0], t, args=(k, ordem_comparativa))
-conc_comp = sol_comp[:, 0]
+# Inicializa a memória se ela não existir
+if 'historico_curvas' not in st.session_state:
+    st.session_state.historico_curvas = []
 
-fig_comp = go.Figure()
-fig_comp.add_trace(go.Scatter(x=t, y=conc_comp, name=f"Ordem {ordem_comparativa}", line=dict(color='orange', width=4)))
+# Controles locais da seção
+c1, c2, c3 = st.columns(3)
+with c1:
+    nova_ordem = st.number_input("Ordem p/ gravar", 0.0, 3.0, 1.0, step=0.5)
+with c2:
+    nova_conc = st.number_input("[A]₀ p/ gravar", 0.1, 10.0, 2.0)
+with c3:
+    novo_k = st.number_input("k p/ gravar", 0.01, 5.0, 0.45)
 
-fig_comp.update_layout(
-    title=f"Comportamento do Reagente A com Ordem {ordem_comparativa}",
+b1, b2 = st.columns(2)
+with b1:
+    if st.button("🚀 Gravar Curva", use_container_width=True):
+        # Cálculo da nova curva
+        def func_comp(y, t, k, n):
+            return [-k * (y[0]**n)]
+        
+        t_comp = np.linspace(0, t_max, 500)
+        sol_comp = odeint(func_comp, [nova_conc], t_comp, args=(novo_k, nova_ordem))
+        
+        # Salva no histórico com uma legenda identificadora
+        legenda = f"Ordem {nova_ordem} | [A]₀ {nova_conc} | k {novo_k}"
+        st.session_state.historico_curvas.append({
+            't': t_comp,
+            'y': sol_comp[:, 0],
+            'label': legenda
+        })
+
+with b2:
+    if st.button("🗑️ Resetar Gráfico", use_container_width=True):
+        st.session_state.historico_curvas = []
+        st.rerun()
+
+# Plotagem do gráfico comparativo
+fig_hist = go.Figure()
+
+if not st.session_state.historico_curvas:
+    fig_hist.add_annotation(text="Nenhuma curva gravada. Clique em 'Gravar Curva' acima.", 
+                           showarrow=False, font=dict(size=20))
+else:
+    for curva in st.session_state.historico_curvas:
+        fig_hist.add_trace(go.Scatter(x=curva['t'], y=curva['y'], name=curva['label'], mode='lines'))
+
+fig_hist.update_layout(
+    title="Comparativo de Cenários Cinéticos",
     xaxis_title="Tempo (s)",
     yaxis_title="Concentração [A]",
-    template="plotly_dark"
+    template="plotly_dark",
+    legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
 )
 
-st.plotly_chart(fig_comp, use_container_width=True)
-
-if ordem_comparativa == 0:
-    st.info("💡 **Ordem 0**: A velocidade é constante. A concentração cai como uma linha reta.")
-elif ordem_comparativa == 1:
-    st.info("💡 **Ordem 1**: A velocidade depende de [A]. A curva é uma exponencial decrescente.")
-else:
-    st.info(f"💡 **Ordem {ordem_comparativa}**: A velocidade é extremamente sensível à concentração inicial. A curva 'mergulha' rápido e depois estabiliza devagar.")
+st.plotly_chart(fig_hist, use_container_width=True)
