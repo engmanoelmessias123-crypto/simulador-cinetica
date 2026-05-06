@@ -170,19 +170,19 @@ else:
 # Cria o gráfico de linha (laranja)
 fig_lin = go.Figure(go.Scatter(x=t, y=y_lin, name="Linearização", line=dict(color='orange', width=2)))
 
-# 2. Constrói a Ferramenta de Cálculo na coluna da direita
 with c_l2:
     st.write("### Encontre a Constante $k$")
     st.write("A inclinação ($m$) desta reta corresponde ao valor de **k**!")
     
+    # 1. Os inputs com as chaves únicas e o tratamento de erro
     t1_lin = st.number_input("Escolha t1", 0.0, float(t_max), min(5.0, float(t_max)), key="LIN_T1")
-t2_lin = st.number_input("Escolha t2", 0.0, float(t_max), min(20.0, float(t_max)), key="LIN_T2")
+    t2_lin = st.number_input("Escolha t2", 0.0, float(t_max), min(20.0, float(t_max)), key="LIN_T2")
     
-    # Encontra o Y correspondente aos tempos escolhidos
+    # 2. As linhas de cálculo (MANTENHA O MESMO ALINHAMENTO)
     y1_lin = np.interp(t1_lin, t, y_lin)
     y2_lin = np.interp(t2_lin, t, y_lin)
     
-    # Calcula o coeficiente angular (m)
+    # 3. O cálculo do coeficiente
     m_lin = (y2_lin - y1_lin) / (t2_lin - t1_lin) if t2_lin != t1_lin else 0
     
     # Define a regra do sinal baseada na ordem
