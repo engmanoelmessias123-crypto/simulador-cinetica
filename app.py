@@ -137,13 +137,60 @@ with col1:
 # --- 2. Linearização ---
 st.divider()
 st.subheader(f"📈 Linearização para {nome_alvo}")
+
+# Dividimos a tela: Gráfico na esquerda (c_l1) e Ferramenta na direita (c_l2)
 c_l1, c_l2 = st.columns([2, 1])
+
+# 1. Prepara os dados do eixo Y com base na ordem atual
+if ordem_alvo == 0: 
+    y_lin, lab_lin = conc_alvo, nome_alvo
+elif ordem_alvo == 1: 
+    y_lin, lab_lin = np.log(conc_alvo + 1e-9), f"ln({nome_alvo})"
+else: 
+    y_lin, lab_lin = 1/(conc_alvo + 1e-9), f"1/{nome_alvo}"
+
+# Cria o gráfico de linha (laranja)
+fig_lin = go.Figure(go.Scatter(x=t, y=y_lin, name="Linearização", line=dict(color='orange', width=2)))
+
+# 2. Constrói a Ferramenta de Cálculo na coluna da direita
+with c_l2:
+    st.write("### Encontre a Constante $k$")
+    st.write("A inclinação ($m$) desta reta corresponde ao valor de **k**!")
+    
+    t1_lin = st.number_input("Escolha t1", 0.0, float(t_max), 5.0, key="K23_LIN_T1")
+    t2_lin = st.number_input("Escolha t2", 0.0, float(t_max), 20.0, key="K24_LIN_T2")
+    
+    # Encontra o Y correspondente aos tempos escolhidos
+    y1_lin = np.interp(t1_lin, t, y_lin)
+    y2_lin = np.interp(t2_lin, t, y_lin)
+    
+    # Calcula o coeficiente angular (m)
+    m_lin = (y2_lin - y1_lin) / (t2_lin - t1_lin) if t2_lin != t1_lin else 0
+    
+    # Define a regra do sinal baseada na ordem
+    if ordem_alvo == 0 or ordem_alvo == 1:
+        k_calculado = -m_lin
+        formula_k = "k = -m"
+    else:
+        k_calculado = m_lin
+        formula_k = "k = m"
+        
+    st.latex(rf"m = \frac{{\Delta y}}{{\Delta x}} \quad \rightarrow \quad {formula_k}")
+    
+    if st.button("Calcular $k$ pelo Gráfico", key="K25_BTN_LIN"):
+        st.latex(rf"m = \frac{{{y2_lin:.3f} - ({y1_lin:.3f})}}{{{t2_lin} - {t1_lin}}}")
+        st.success(rf"**Constante $k$ calculada:** {k_calculado:.4f}")
+
+# 3. Plota o Gráfico na coluna da esquerda
 with c_l1:
-    if ordem_alvo == 0: y_lin, lab_lin = conc_alvo, nome_alvo
-    elif ordem_alvo == 1: y_lin, lab_lin = np.log(conc_alvo + 1e-9), f"ln({nome_alvo})"
-    else: y_lin, lab_lin = 1/(conc_alvo + 1e-9), f"1/{nome_alvo}"
-    fig_lin = go.Figure(go.Scatter(x=t, y=y_lin, line=dict(color='orange', width=2)))
-    fig_lin.update_layout(height=300, template="plotly_dark", yaxis_title=lab_lin)
+    # Adiciona os pontos "X" brancos no gráfico para mostrar onde o aluno está medindo
+    fig_lin.add_trace(go.Scatter(
+        x=[t1_lin, t2_lin], y=[y1_lin, y2_lin], mode='markers+text', name='Pontos de Medição',
+        text=[f"y={y1_lin:.2f}", f"y={y2_lin:.2f}"], textposition="top right",
+        marker=dict(color='white', size=10, symbol='x')
+    ))
+    
+    fig_lin.update_layout(height=350, template="plotly_dark", yaxis_title=lab_lin, xaxis_title="Tempo (s)")
     st.plotly_chart(fig_lin, use_container_width=True, key="CHART_2_LINEAR")
 
 # --- 3. Comparador Histórico ---
