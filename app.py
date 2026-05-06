@@ -138,7 +138,7 @@ elif modo_calc == "Velocidade Instantânea":
     # Desenho da Reta Tangente e do Triângulo Tracejado
     if mostrar_alvo:
         fig_main.add_trace(go.Scatter(x=[t_start, t_end], y=[c_start, c_end], mode='lines', name='Tangente', line=dict(color='cyan', width=2)))
-        fig_main.add_trace(go.Scatter(x=[ti], y=[ci], mode='markers', name='Instante (t)', marker=dict(color='#FF00FF', size=10, symbol='circle', line=dict(color='black', width=2))))
+        fig_main.add_trace(go.Scatter(x=[ti], y=[ci], mode='markers', name='Instante (t)', marker=dict(color='White', size=10, symbol='circle', line=dict(color='black', width=2))))
         fig_main.add_trace(go.Scatter(x=[t_start, t_start, t_end], y=[c_start, c_end, c_end], mode='lines', showlegend=False, line=dict(color='cyan', dash='dot', width=2)))
 # -------------------------------------------------------------
 
