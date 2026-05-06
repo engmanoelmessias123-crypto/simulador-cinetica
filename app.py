@@ -129,63 +129,62 @@ with c_l2:
 
 
 
-# --- SEÇÃO: Comparador de Histórico (Curvas Gravadas) ---
+# --- SEÇÃO: Comparador de Histórico (AJUSTADO PARA VISUALIZAÇÃO) ---
 st.divider()
-st.header("📚 Histórico de Comparação Cinética")
-st.write("Adicione curvas ao gráfico para comparar ordens e concentrações diferentes.")
+st.header("📚 Comparador de Cinética (Foco na Inclinação)")
+st.write("Compare como a Ordem muda a 'barriga' da curva nos primeiros segundos.")
 
-# Inicializa a memória se ela não existir
 if 'historico_curvas' not in st.session_state:
     st.session_state.historico_curvas = []
 
-# Controles locais da seção
 c1, c2, c3 = st.columns(3)
-with c1:
-    nova_ordem = st.number_input("Ordem p/ gravar", 0.0, 3.0, 1.0, step=0.5)
-with c2:
-    nova_conc = st.number_input("[A]₀ p/ gravar", 0.1, 10.0, 2.0)
-with c3:
-    novo_k = st.number_input("k p/ gravar", 0.01, 5.0, 0.45)
+with c1: nova_ordem = st.number_input("Ordem p/ gravar", 0.0, 3.0, 1.0, step=0.5)
+with c2: nova_conc = st.number_input("[A]₀ p/ gravar", 0.1, 10.0, 2.0)
+with c3: novo_k = st.number_input("k p/ gravar", 0.01, 5.0, 0.45)
 
 b1, b2 = st.columns(2)
 with b1:
     if st.button("🚀 Gravar Curva", use_container_width=True):
-        # Cálculo da nova curva
         def func_comp(y, t, k, n):
             return [-k * (y[0]**n)]
         
-        t_comp = np.linspace(0, t_max, 500)
+        # Aumentamos a resolução (1000 pontos) para a curva ficar lisa
+        t_comp = np.linspace(0, t_max, 1000)
         sol_comp = odeint(func_comp, [nova_conc], t_comp, args=(novo_k, nova_ordem))
         
-        # Salva no histórico com uma legenda identificadora
-        legenda = f"Ordem {nova_ordem} | [A]₀ {nova_conc} | k {novo_k}"
-        st.session_state.historico_curvas.append({
-            't': t_comp,
-            'y': sol_comp[:, 0],
-            'label': legenda
-        })
+        legenda = f"Ordem {nova_ordem} | [A]₀ {nova_conc}"
+        st.session_state.historico_curvas.append({'t': t_comp, 'y': sol_comp[:, 0], 'label': legenda})
 
 with b2:
     if st.button("🗑️ Resetar Gráfico", use_container_width=True):
         st.session_state.historico_curvas = []
         st.rerun()
 
-# Plotagem do gráfico comparativo
 fig_hist = go.Figure()
 
 if not st.session_state.historico_curvas:
-    fig_hist.add_annotation(text="Nenhuma curva gravada. Clique em 'Gravar Curva' acima.", 
-                           showarrow=False, font=dict(size=20))
+    fig_hist.add_annotation(text="Configure e clique em 'Gravar Curva'", showarrow=False, font=dict(size=20))
 else:
     for curva in st.session_state.historico_curvas:
-        fig_hist.add_trace(go.Scatter(x=curva['t'], y=curva['y'], name=curva['label'], mode='lines'))
+        fig_hist.add_trace(go.Scatter(x=curva['t'], y=curva['y'], name=curva['label'], mode='lines', line=dict(width=3)))
 
+# --- AS MUDANÇAS DE VISUALIZAÇÃO ESTÃO AQUI ---
 fig_hist.update_layout(
-    title="Comparativo de Cenários Cinéticos",
-    xaxis_title="Tempo (s)",
-    yaxis_title="Concentração [A]",
+    xaxis=dict(
+        title="Tempo (s)",
+        range=[0, 15]  # FIXAMOS O ZOOM nos primeiros 15 segundos para ver a inclinação!
+    ),
+    yaxis=dict(
+        title="Concentração [A]",
+        range=[0, nova_conc + 0.5], # Fixa o topo do gráfico um pouco acima da conc. inicial
+        autorange=False # Impede o gráfico de ficar "achatando"
+    ),
+    height=500,
     template="plotly_dark",
     legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
 )
+
+st.plotly_chart(fig_hist, use_container_width=True)
+st.info("💡 **Dica Pedagógica:** Repare nos primeiros 5 segundos. Note como a Ordem 3 cai de forma muito mais 'vertical' que a Ordem 1, mas depois demora muito mais para chegar ao zero absoluto.")
 
 st.plotly_chart(fig_hist, use_container_width=True)
