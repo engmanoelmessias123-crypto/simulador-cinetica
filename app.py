@@ -4,17 +4,17 @@ import plotly.graph_objects as go
 from scipy.integrate import odeint
 
 st.set_page_config(page_title="Laboratório de Cinética Prof", layout="wide")
-# --- NOVO BLOCO: Ocultar o Menu do Streamlit para Travar o Tema ---
-ocultar_menu = """
+
+# --- NOVO BLOCO: Ocultar o Menu (Versão Atualizada) ---
+esconder_menu = """
     <style>
-    #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
+    [data-testid="stToolbar"] {visibility: hidden !important;}
+    header {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
     </style>
     """
-st.markdown(ocultar_menu, unsafe_allow_html=True)
-# ------------------------------------------------------------------
-
+st.markdown(esconder_menu, unsafe_allow_html=True)
+# ------------------------------------------------------
 # --- Lógica de Cálculo ---
 def modelo_cinetico(y, t, k, na, nb, tipo):
     A = y[0]
