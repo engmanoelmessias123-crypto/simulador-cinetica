@@ -81,10 +81,16 @@ if mostrar_p: fig_main.add_trace(go.Scatter(x=t, y=conc_p, name="[Produto]", lin
 if modo_calc == "Velocidade Média":
     with col2:
         st.subheader(f"Cálculo da VM de {nome_alvo}")
+        
+        # Inputs de tempo
         t1 = st.number_input("Escolha t1", 0.0, float(t_max), min(5.0, float(t_max)), key="K24_LIN_T1")
-        t2 = st.number_input("Escolha t2", 0.0, float(t_max), min(20.0, float(t_max)), key="K24_LIN_T2")
+        t2 = st.number_input("Escolha t2", 0.0, float(t_max), min(10.0, float(t_max)), key="K24_LIN_T2")
+        
+        # Cálculos de concentração (Interpolação)
         c1 = np.interp(t1, t, conc_alvo)
         c2 = np.interp(t2, t, conc_alvo)
+        
+        # Cálculo da velocidade
         v_media = abs(c2 - c1) / (t2 - t1) if t2 != t1 else 0
         
         st.latex(rf"v_m = \left| \frac{{\Delta {nome_alvo}}}{{\Delta t}} \right|")
