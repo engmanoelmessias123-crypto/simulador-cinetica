@@ -67,7 +67,7 @@ ordem_alvo = ordem_a_sid if reagente_alvo == "A" else (ordem_b_sid if modelo == 
 mostrar_alvo = mostrar_a if reagente_alvo == "A" else mostrar_b
 
 # --- 1. Gráfico Principal ---
-st.title("🧪 Verificador de Velocidade Cinética TESTE")
+st.title("🧪 Verificador de Velocidade Cinética")
 col1, col2 = st.columns([2, 1])
 
 fig_main = go.Figure()
