@@ -3,7 +3,6 @@ import numpy as np
 import plotly.graph_objects as go
 from scipy.integrate import odeint
 
-# Configuração da página
 st.set_page_config(page_title="Laboratório de Cinética Prof", layout="wide")
 
 # --- Lógica de Cálculo ---
@@ -23,7 +22,6 @@ ordem_a_sid = st.sidebar.slider("Ordem em A", 0, 2, 1, key="K3_ORDEM_A")
 a0_sid = st.sidebar.slider("[A]₀ Inicial", 0.1, 5.0, 2.0, key="K4_A0")
 t_max = st.sidebar.slider("Tempo Total", 10, 100, 50, key="K5_TMAX")
 
-# Resolução Cinética Principal
 t = np.linspace(0, t_max, 1000)
 if modelo == "A + B → Produto":
     b0_sid = st.sidebar.slider("[B]₀ Inicial", 0.1, 5.0, 2.0, key="K6_B0")
@@ -65,24 +63,72 @@ if mostrar_a: fig_main.add_trace(go.Scatter(x=t, y=conc_a, name="[A]", line=dict
 if mostrar_b and modelo == "A + B → Produto": fig_main.add_trace(go.Scatter(x=t, y=conc_b, name="[B]", line=dict(color='green', width=3)))
 if mostrar_p: fig_main.add_trace(go.Scatter(x=t, y=conc_p, name="[Produto]", line=dict(color='blue', width=3)))
 
+# -------------------------------------------------------------
+# AS FERRAMENTAS MATEMÁTICAS COMPLETAS E DIDÁTICAS AQUI!
+# -------------------------------------------------------------
 if modo_calc == "Velocidade Média":
     with col2:
-        st.subheader(f"VM de {nome_alvo}")
-        t1 = st.number_input("t1", 0.0, float(t_max), 5.0, key="K13_VM_T1")
-        t2 = st.number_input("t2", 0.0, float(t_max), 15.0, key="K14_VM_T2")
-        c1, c2 = np.interp(t1, t, conc_alvo), np.interp(t2, t, conc_alvo)
-        if st.button("Revelar VM", key="K15_BTN_VM"):
-            st.success(f"vm = {abs(c2-c1)/(t2-t1):.4f} M/s")
-    if mostrar_alvo: fig_main.add_trace(go.Scatter(x=[t1, t2], y=[c1, c2], mode='markers+lines', name='Secante', line=dict(color='yellow', dash='dash')))
+        st.subheader(f"Cálculo da VM de {nome_alvo}")
+        t1 = st.number_input("Tempo Inicial (t1)", 0.0, float(t_max), 5.0, key="K13_VM_T1")
+        t2 = st.number_input("Tempo Final (t2)", 0.0, float(t_max), 15.0, key="K14_VM_T2")
+        c1 = np.interp(t1, t, conc_alvo)
+        c2 = np.interp(t2, t, conc_alvo)
+        v_media = abs(c2 - c1) / (t2 - t1) if t2 != t1 else 0
+        
+        st.latex(rf"v_m = \left| \frac{{\Delta {nome_alvo}}}{{\Delta t}} \right|")
+        
+        if st.button("Revelar Velocidade Média", key="K15_BTN_VM"):
+            st.latex(rf"v_m = \frac{{|{c2:.3f} - {c1:.3f}|}}{{{t2} - {t1}}}")
+            st.success(rf"**Resposta:** {v_media:.4f} M/s")
+            
+    # Desenho da Secante
+    if mostrar_alvo: 
+        fig_main.add_trace(go.Scatter(
+            x=[t1, t2], y=[c1, c2], mode='markers+lines+text', name='Secante', 
+            text=[f"{c1:.3f}M", f"{c2:.3f}M"], textposition=["bottom left", "top right"],
+            textfont=dict(color="yellow", size=14), line=dict(color='yellow', dash='dash', width=2),
+            marker=dict(size=10)
+        ))
 
 elif modo_calc == "Velocidade Instantânea":
     with col2:
-        st.subheader(f"VI de {nome_alvo}")
-        ti = st.slider("Instante (t)", 0.0, float(t_max), float(t_max/2), key="K16_VI_TI")
+        st.subheader(f"Cálculo da VI de {nome_alvo}")
+        ti = st.slider("Escolha o instante (t)", 0.0, float(t_max), float(t_max/2), key="K16_VI_TI")
+        
         ci = np.interp(ti, t, conc_alvo)
-        if st.button("Revelar VI", key="K17_BTN_VI"):
-            vi = k_sid * (np.interp(ti, t, conc_a)**ordem_a_sid) * (np.interp(ti, t, conc_b)**(ordem_b_sid if modelo == "A + B → Produto" else 0) if modelo == "A + B → Produto" else 1)
-            st.success(f"v = {vi:.4f} M/s")
+        ai_val = np.interp(ti, t, conc_a)
+        bi_val = np.interp(ti, t, conc_b) if modelo == "A + B → Produto" else 0
+        
+        # Cálculo cinético real no ponto
+        vi = k_sid * (ai_val**ordem_a_sid) * (bi_val**ordem_b_sid if modelo == "A + B → Produto" and ordem_b_sid > 0 else 1)
+        slope = -vi # Inclinação negativa para reagentes
+        b_coef = ci - slope * ti
+        sinal_b = "+" if b_coef >= 0 else "-"
+        
+        # Geometria da Reta Tangente para os Deltas
+        dt_span = t_max * 0.15
+        t_start, t_end = max(0, ti - dt_span), min(t_max, ti + dt_span)
+        c_start, c_end = ci + slope * (t_start - ti), ci + slope * (t_end - ti)
+        delta_c, delta_t = c_end - c_start, t_end - t_start
+        
+        st.write(f"Use os pontos da **reta tangente** para encontrar $m$ e a equação da reta para {nome_alvo}:")
+        st.latex(rf"m = \frac{{\Delta {nome_alvo}}}{{\Delta t}} \quad \rightarrow \quad v_{{inst}} = -m")
+        
+        # Quadro de informações dos Deltas
+        st.info(f"**Dados da Reta Tangente no gráfico:**\n\n$\\Delta {nome_alvo} = {delta_c:.3f}$ M\n\n$\\Delta t = {delta_t:.3f}$ s")
+        
+        if st.button("Revelar Velocidade e Equação", key="K17_BTN_VI"):
+            st.latex(rf"m = \frac{{{delta_c:.3f}}}{{{delta_t:.3f}}} = {slope:.4f}")
+            st.success(rf"**Velocidade ($v = -m$):** {vi:.4f} M/s")
+            st.write(f"**Equação da Reta Tangente:**")
+            st.latex(rf"{nome_alvo} = {slope:.4f} \cdot t {sinal_b} {abs(b_coef):.4f}")
+            
+    # Desenho da Reta Tangente e do Triângulo Tracejado
+    if mostrar_alvo:
+        fig_main.add_trace(go.Scatter(x=[t_start, t_end], y=[c_start, c_end], mode='lines', name='Tangente', line=dict(color='cyan', width=2)))
+        fig_main.add_trace(go.Scatter(x=[ti], y=[ci], mode='markers', name='Instante (t)', marker=dict(color='white', size=8)))
+        fig_main.add_trace(go.Scatter(x=[t_start, t_start, t_end], y=[c_start, c_end, c_end], mode='lines', showlegend=False, line=dict(color='cyan', dash='dot', width=2)))
+# -------------------------------------------------------------
 
 with col1:
     fig_main.update_layout(xaxis_title="Tempo (s)", yaxis_title="Molaridade (M)", template="plotly_dark")
