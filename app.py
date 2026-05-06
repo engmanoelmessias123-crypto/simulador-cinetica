@@ -67,7 +67,7 @@ ordem_alvo = ordem_a_sid if reagente_alvo == "A" else (ordem_b_sid if modelo == 
 mostrar_alvo = mostrar_a if reagente_alvo == "A" else mostrar_b
 
 # --- 1. Gráfico Principal ---
-st.title("🧪 Verificador de Velocidade Cinética")
+st.title("🧪 Simulação da Velocidade da Reação")
 col1, col2 = st.columns([2, 1])
 
 fig_main = go.Figure()
@@ -82,7 +82,7 @@ if modo_calc == "Velocidade Média":
     with col2:
         st.subheader(f"Cálculo da VM de {nome_alvo}")
         t1 = st.number_input("Tempo Inicial (t1)", 0.0, float(t_max), 5.0, key="K13_VM_T1")
-        t2 = st.number_input("Tempo Final (t2)", 0.0, float(t_max), 15.0, key="K14_VM_T2")
+        t2_lin = st.number_input("Escolha t2", 0.0, float(t_max), min(20.0, float(t_max)), key="K24_LIN_T2")
         c1 = np.interp(t1, t, conc_alvo)
         c2 = np.interp(t2, t, conc_alvo)
         v_media = abs(c2 - c1) / (t2 - t1) if t2 != t1 else 0
@@ -207,7 +207,7 @@ with c_l1:
 
 # --- 3. Comparador Histórico ---
 st.divider()
-st.header("📚 Comparador de Histórico")
+st.header("📚 Comparador de Curvas Cinéticas")
 if 'historico' not in st.session_state: st.session_state.historico = []
 
 h1, h2, h3 = st.columns(3)
