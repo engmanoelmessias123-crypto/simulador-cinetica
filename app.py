@@ -44,6 +44,24 @@ else:
     sol = odeint(modelo_cinetico, [a0_sid, 0], t, args=(k_sid, ordem_a_sid, 0, modelo))
     conc_a, conc_p = sol[:, 0], sol[:, 1]
     conc_b = np.zeros_like(t)
+    
+    # --- TRAVA MATEMÁTICA DA REALIDADE FÍSICA ---
+# Cria uma máscara para manter apenas os dados onde a concentração dos reagentes é positiva.
+# Usamos 1e-5 no lugar de 0 exato para garantir que não haja erros de log(0) na linearização.
+limite_zero = 1e-5
+
+if modelo == "A + B → Produto":
+    # Se tiver B, a reação para quando A ou B acabarem
+    indices_validos = (conc_a > limite_zero) & (conc_b > limite_zero)
+else:
+    # Se for só A, a reação para quando A acabar
+    indices_validos = (conc_a > limite_zero)
+
+# Aplicando o filtro para cortar as arrays de tempo e concentração
+t = t[indices_validos]
+conc_a = conc_a[indices_validos]
+conc_b = conc_b[indices_validos]
+conc_p = conc_p[indices_validos]
 
 # --- Opções de Exibição ---
 st.sidebar.divider()
