@@ -267,7 +267,7 @@ with c_l2:
     st.write("### Encontre a Constante $k$")
     st.write("A inclinação ($m$) desta reta corresponde ao valor de **k**!")
     
-    # 1. Os inputs com as chaves únicas e o tratamento de erro
+  # 1. Os inputs com as chaves únicas e o tratamento de erro
     t1_lin = st.number_input("Escolha t1", 0.0, float(t_max), min(5.0, float(t_max)), key="LIN_T1")
     t2_lin = st.number_input("Escolha t2", 0.0, float(t_max), min(20.0, float(t_max)), key="LIN_T2")
     
