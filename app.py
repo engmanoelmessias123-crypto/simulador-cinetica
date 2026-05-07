@@ -28,11 +28,37 @@ def modelo_cinetico(y, t, k, na, nb, tipo):
 
 # --- Sidebar: Configurações ---
 st.sidebar.title("Configurações")
-modelo = st.sidebar.radio("Tipo de Reação", ["A → Produto", "A + B → Produto"], key="K1_MODELO")
-k_sid = st.sidebar.slider("Constante k", 0.01, 2.0, 0.45, key="K2_K")
-ordem_a_sid = st.sidebar.slider("Ordem em A", 0, 2, 1, key="K3_ORDEM_A")
-a0_sid = st.sidebar.slider("[A]₀ Inicial", 0.1, 5.0, 2.0, key="K4_A0")
-t_max = st.sidebar.slider("Tempo Total", 10, 100, 50, key="K5_TMAX")
+
+# 🕵️ MODO INVESTIGAÇÃO (DESAFIO)
+modo_desafio = st.sidebar.toggle("🕵️ Modo Investigação", key="TOGGLE_DESAFIO")
+
+if modo_desafio:
+    # Gera valores secretos se não existirem
+    if 'misterio_k' not in st.session_state:
+        st.session_state.misterio_k = round(np.random.uniform(0.1, 1.5), 2)
+        st.session_state.misterio_ordem = int(np.random.choice([0, 1, 2]))
+    
+    st.sidebar.success("**Modo Ativado!**\nVá na aba de Linearização e descubra a Ordem e a constante 'k' desta substância.")
+    
+    if st.sidebar.button("🔄 Gerar Nova Substância"):
+        st.session_state.misterio_k = round(np.random.uniform(0.1, 1.5), 2)
+        st.session_state.misterio_ordem = int(np.random.choice([0, 1, 2]))
+        st.rerun()
+        
+    modelo = "A → Produto" # Fixo para o desafio
+    k_sid = st.session_state.misterio_k
+    ordem_a_sid = st.session_state.misterio_ordem
+    
+    # Exibe apenas sliders básicos
+    a0_sid = st.sidebar.slider("[A]₀ Inicial", 0.1, 5.0, 2.0, key="K4_A0_DES")
+    t_max = st.sidebar.slider("Tempo Total", 10, 100, 50, key="K5_TMAX_DES")
+else:
+    # Controles Originais do Professor
+    modelo = st.sidebar.radio("Tipo de Reação", ["A → Produto", "A + B → Produto"], key="K1_MODELO")
+    k_sid = st.sidebar.slider("Constante k", 0.01, 2.0, 0.45, key="K2_K")
+    ordem_a_sid = st.sidebar.slider("Ordem em A", 0, 2, 1, key="K3_ORDEM_A")
+    a0_sid = st.sidebar.slider("[A]₀ Inicial", 0.1, 5.0, 2.0, key="K4_A0")
+    t_max = st.sidebar.slider("Tempo Total", 10, 100, 50, key="K5_TMAX")
 
 t = np.linspace(0, t_max, 1000)
 if modelo == "A + B → Produto":
