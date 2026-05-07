@@ -296,7 +296,7 @@ with c_t1:
             fig_taxa.update_layout(xaxis_title=f"Concentração {nome_alvo} (M)", yaxis_title="Velocidade Instantânea (M/s)", xaxis=dict(autorange="reversed"))
     else:
         fig_taxa.add_annotation(text="Nenhum ponto coletado. Salve pontos medindo a tangente acima!", showarrow=False, font=dict(color="yellow", size=14))
-        fig_taxa.update_layout(xaxis_title=f"Concentração {nome_alvo} (M)", yaxis_title="Velocidade Instantânea (M/s)", xaxis=dict(range=[0, a0_sid]))
+        fig_taxa.update_layout(xaxis_title=f"Concentração {nome_alvo} (M)", yaxis_title="Velocidade Instantânea (M/s)")
         
     fig_taxa.update_layout(template="plotly_dark", height=400)
     st.plotly_chart(fig_taxa, use_container_width=True, key="CHART_4_TAXA_DIF")
