@@ -126,9 +126,12 @@ if modo_calc == "Velocidade Média":
     with col2:
         st.subheader(f"Cálculo da Velocidade Média de {nome_alvo}")
         
-        # Inputs de tempo
-        t1 = st.number_input("Escolha t1", 0.0, float(t_max), min(5.0, float(t_max)), key="VM_T1")
-        t2 = st.number_input("Escolha t2", 0.0, float(t_max), min(20.0, float(t_max)), key="VM_T2")
+# --- AJUSTE DA BASE TEMPORAL ---
+        t_limite = float(t[-1])
+        
+        # Inputs de tempo travados no limite real da reação
+        t1 = st.number_input("Escolha t1", 0.0, t_limite, min(1.0, t_limite/4), key="VM_T1")
+        t2 = st.number_input("Escolha t2", 0.0, t_limite, min(5.0, t_limite/2), key="VM_T2")
         
         # Cálculos de concentração (Interpolação)
         c1 = np.interp(t1, t, conc_alvo)
@@ -155,7 +158,9 @@ if modo_calc == "Velocidade Média":
 elif modo_calc == "Velocidade Instantânea":
     with col2:
         st.subheader(f"Cálculo da Velocidade Instantânea de {nome_alvo}")
-        ti = st.slider("Escolha o instante (t)", 0.0, float(t_max), float(t_max/2), key="K16_VI_TI")
+        # --- AJUSTE DA BASE TEMPORAL ---
+        t_limite = float(t[-1])
+        ti = st.slider("Escolha o instante (t)", 0.0, t_limite, float(t_limite/2), key="K16_VI_TI")
         
         ci = np.interp(ti, t, conc_alvo)
         ai_val = np.interp(ti, t, conc_a)
