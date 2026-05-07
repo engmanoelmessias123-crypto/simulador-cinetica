@@ -304,8 +304,14 @@ with c_l1:
         text=[f"y={y1_lin:.2f}", f"y={y2_lin:.2f}"], textposition="top right",
         marker=dict(color='white', size=10, symbol='x')
     ))
-    
-    fig_lin.update_layout(height=350, template="plotly_dark", yaxis_title=lab_lin, xaxis_title="Tempo (s)")
+    # O comando xaxis=dict(range=[0, t_real_max]) dá o zoom perfeito na reta
+    fig_lin.update_layout(
+        height=350, 
+        template="plotly_dark", 
+        yaxis_title=lab_lin, 
+        xaxis_title="Tempo (s)",
+        xaxis=dict(range=[0, t_real_max]) 
+    )
     st.plotly_chart(fig_lin, use_container_width=True, key="CHART_2_LINEAR")
 
 # --- 3. Comparador Histórico ---
