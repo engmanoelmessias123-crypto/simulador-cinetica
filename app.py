@@ -123,11 +123,33 @@ elif modo_calc == "Velocidade Instantânea":
         b_coef = ci - slope * ti
         sinal_b = "+" if b_coef >= 0 else "-"
         
-        # Geometria da Reta Tangente para os Deltas
-        dt_span = t_max * 0.15
-        t_start, t_end = max(0, ti - dt_span), min(t_max, ti + dt_span)
-        c_start, c_end = ci + slope * (t_start - ti), ci + slope * (t_end - ti)
-        delta_c, delta_t = c_end - c_start, t_end - t_start
+     # Geometria da Reta Tangente: Calculando Interceptos nos Eixos
+        if slope != 0:
+            # Ponto que toca o eixo Y (t = 0)
+            t_int_y = 0.0
+            c_int_y = b_coef
+            
+            # Ponto que toca o eixo X (y = 0) -> 0 = slope * t + b_coef
+            t_int_x = -b_coef / slope
+            c_int_x = 0.0
+        else:
+            t_int_y, c_int_y = 0.0, ci
+            t_int_x, c_int_x = t_max, ci
+
+        # Limitando a reta para NÃO ter Y negativo
+        if slope < 0: 
+            # Reagentes (decrescente): a reta vai do eixo Y ao eixo X
+            t_start, c_start = t_int_y, c_int_y
+            t_end, c_end = t_int_x, c_int_x
+        else: 
+            # Produtos (crescente): começa no eixo X (ou zero) e vai até o fim do gráfico
+            t_start = max(0.0, t_int_x)
+            c_start = slope * t_start + b_coef
+            t_end = t_max
+            c_end = slope * t_end + b_coef
+
+        delta_c = c_end - c_start
+        delta_t = t_end - t_start
         
         st.write(f"Use os pontos da **reta tangente** para encontrar $m$ e a equação da reta para {nome_alvo}:")
         st.latex(rf"m = \frac{{\Delta {nome_alvo}}}{{\Delta t}} \quad \rightarrow \quad v_{{inst}} = -m")
@@ -143,9 +165,36 @@ elif modo_calc == "Velocidade Instantânea":
             
     # Desenho da Reta Tangente e do Triângulo Tracejado
     if mostrar_alvo:
+        # 1. A reta tangente restrita aos eixos
         fig_main.add_trace(go.Scatter(x=[t_start, t_end], y=[c_start, c_end], mode='lines', name='Tangente', line=dict(color='cyan', width=2)))
+        
+        # 2. Ponto do instante selecionado (t)
         fig_main.add_trace(go.Scatter(x=[ti], y=[ci], mode='markers', name='Instante (t)', marker=dict(color='White', size=10, symbol='circle', line=dict(color='black', width=2))))
+        
+        # 3. Triângulo tracejado para os deltas (opcional, formando ângulo reto)
         fig_main.add_trace(go.Scatter(x=[t_start, t_start, t_end], y=[c_start, c_end, c_end], mode='lines', showlegend=False, line=dict(color='cyan', dash='dot', width=2)))
+
+        # 4. MARCAÇÃO DOS 2 PONTOS QUE TOCAM OS EIXOS (com valores em X e Y)
+        if slope < 0:
+            fig_main.add_trace(go.Scatter(
+                x=[t_int_y, t_int_x], 
+                y=[c_int_y, c_int_x], 
+                mode='markers+text', 
+                name='Interceptos',
+                text=[f"(0.00, {c_int_y:.2f} M)", f"({t_int_x:.2f} s, 0.00)"],
+                textposition=["top right", "top right"],
+                marker=dict(color='yellow', size=10, symbol='x')
+            ))
+        elif slope > 0 and t_int_x >= 0: # Caso analise um Produto
+            fig_main.add_trace(go.Scatter(
+                x=[t_int_x], 
+                y=[c_int_x], 
+                mode='markers+text', 
+                name='Intercepto X',
+                text=[f"({t_int_x:.2f} s, 0.00)"],
+                textposition="top left",
+                marker=dict(color='yellow', size=10, symbol='x')
+            ))
 # -------------------------------------------------------------
 
 with col1:
