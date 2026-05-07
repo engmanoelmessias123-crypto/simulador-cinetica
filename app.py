@@ -267,9 +267,13 @@ with c_l2:
     st.write("### Encontre a Constante $k$")
     st.write("A inclinação ($m$) desta reta corresponde ao valor de **k**!")
     
-  # 1. Os inputs com as chaves únicas e o tratamento de erro
-    t1_lin = st.number_input("Escolha t1", 0.0, float(t_max), min(5.0, float(t_max)), key="LIN_T1")
-    t2_lin = st.number_input("Escolha t2", 0.0, float(t_max), min(20.0, float(t_max)), key="LIN_T2")
+  # --- AJUSTE DA BASE TEMPORAL DA RETA ---
+    # Descobre qual foi o último segundo real antes de o reagente acabar
+    t_real_max = float(t[-1]) 
+    
+    # 1. Os inputs travados para garantir que os pontos caiam exatamente DENTRO da reta
+    t1_lin = st.number_input("Escolha t1", 0.0, t_real_max, min(1.0, t_real_max/4), key="LIN_T1")
+    t2_lin = st.number_input("Escolha t2", 0.0, t_real_max, min(5.0, t_real_max/2), key="LIN_T2")
     
     # 2. As linhas de cálculo (MANTENHA O MESMO ALINHAMENTO)
     y1_lin = np.interp(t1_lin, t, y_lin)
