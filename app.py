@@ -303,17 +303,29 @@ with c_t1:
             fig_taxa.add_trace(go.Scatter(x=c_vals, y=v_vals, mode='markers', name='Medições', marker=dict(color='magenta', size=12, symbol='x')))
             fig_taxa.update_layout(xaxis_title=f"Concentração {nome_alvo} (M)", yaxis_title="Velocidade Instantânea (M/s)")
             
-            # MATEMÁTICA DA TENDÊNCIA (CURVA)
-            if mostrar_tendencia and len(c_vals) > 1:
-                log_c = np.log(np.array(c_vals) + 1e-9)
-                log_v = np.log(np.array(v_vals) + 1e-9)
-                z = np.polyfit(log_c, log_v, 1)
-                n_fit = z[0] 
-                k_fit = np.exp(z[1]) 
-                
-                c_smooth = np.linspace(min(c_vals), max(c_vals), 100)
-                v_smooth = k_fit * (c_smooth**n_fit)
-                fig_taxa.add_trace(go.Scatter(x=c_smooth, y=v_smooth, mode='lines', name='Curva de Melhor Ajuste', line=dict(color='yellow', dash='dash', width=2)))
+            # --- NOVO BLOCO DE TENDÊNCIA (TRD) REFORMULADO ---
+            if mostrar_tendencia:
+                # 1. Filtro de Segurança: Só calcula se houver mais de 1 ponto único em X
+                if len(set(log_c)) > 1:
+                    try:
+                        z = np.polyfit(log_c, log_v, 1)
+                        p = np.poly1d(z)
+                        
+                        # Criar vetor X para a linha cobrindo apenas a área dos pontos
+                        x_range = np.linspace(min(log_c), max(log_c), 100)
+                        y_range = p(x_range)
+                        
+                        fig_taxa.add_trace(go.Scatter(
+                            x=x_range, 
+                            y=y_range, 
+                            mode='lines', 
+                            name=f'Ajuste Linear (m={z[0]:.2f})', 
+                            line=dict(color='yellow', dash='dash', width=2)
+                        ))
+                    except Exception:
+                        st.error("Erro no cálculo da tendência. Tente pontos mais espaçados.")
+                else:
+                    st.info("💡 Adicione pelo menos 2 pontos com concentrações diferentes para ver a tendência.")
                 
     else:
         fig_taxa.add_annotation(text="Nenhum ponto coletado. Salve pontos medindo a tangente acima!", showarrow=False, font=dict(color="yellow", size=14))
