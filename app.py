@@ -5,13 +5,14 @@ from scipy.integrate import odeint
 
 st.set_page_config(page_title="Laboratório de Cinética Prof", layout="wide")
 
-# --- Ocultar o Menu e Toolbar ---
+# --- Ocultar o Menu e Toolbar (Versão Definitiva) ---
 esconder_menu = """
     <style>
     #MainMenu {visibility: hidden !important;}
     header {visibility: hidden !important;}
     footer {visibility: hidden !important;}
     .stApp [data-testid="stToolbar"] {display: none !important;}
+    [data-testid="stHeaderActionElements"] {display: none !important;}
     </style>
     """
 st.markdown(esconder_menu, unsafe_allow_html=True)
@@ -67,20 +68,15 @@ if modelo == "A + B → Produto": conc_b = conc_b[indices_validos]
 # --- Opções de Exibição ---
 st.sidebar.divider()
 st.sidebar.subheader("👁️ Exibir no gráfico?")
-mostrar_a = st.sidebar.checkbox("Reagente [A]", value=True, key="K8_VIEW_A")
-mostrar_b = st.sidebar.checkbox("Reagente [B]", value=True, key="K9_VIEW_B") if modelo == "A + B → Produto" else False
-mostrar_p = st.sidebar.checkbox("Produto", value=True, key="K10_VIEW_P")
-mostrar_meia_vida = st.sidebar.checkbox("⏱️ Meia-Vida (t½)", value=False, key="VIEW_MEIA_VIDA") if (not modo_desafio and modelo == "A → Produto") else False
+mostrar_a, mostrar_p = st.sidebar.checkbox("Reagente [A]", value=True), st.sidebar.checkbox("Produto", value=True)
+mostrar_b = st.sidebar.checkbox("Reagente [B]", value=True) if modelo == "A + B → Produto" else False
+mostrar_meia_vida = st.sidebar.checkbox("⏱️ Meia-Vida (t½)", value=False) if (not modo_desafio and modelo == "A → Produto") else False
 
 # --- Ferramentas ---
 st.sidebar.divider()
-st.sidebar.subheader("🧮 Ferramentas")
-modo_calc = st.sidebar.selectbox("O que calcular?", ["Nenhum", "Velocidade Média", "Velocidade Instantânea"], key="K11_SELECT_CALC")
-reagente_alvo = "A"
-if modo_calc != "Nenhum" and modelo == "A + B → Produto":
-    reagente_alvo = st.sidebar.radio("Analisar qual?", ["A", "B"], key="K12_RADIO_ALVO")
-conc_alvo = conc_a if reagente_alvo == "A" else conc_b
-nome_alvo = f"[{reagente_alvo}]"
+modo_calc = st.sidebar.selectbox("O que calcular?", ["Nenhum", "Velocidade Média", "Velocidade Instantânea"])
+reagente_alvo = st.sidebar.radio("Analisar qual?", ["A", "B"]) if modo_calc != "Nenhum" and modelo == "A + B → Produto" else "A"
+conc_alvo, nome_alvo = (conc_a, f"[{reagente_alvo}]") if reagente_alvo == "A" else (conc_b, f"[{reagente_alvo}]")
 
 # --- 1. Gráfico Principal ---
 st.title("🧪 Simulação da Velocidade da Reação")
@@ -90,7 +86,7 @@ if mostrar_a: fig_main.add_trace(go.Scatter(x=t, y=conc_a, name="[A]", line=dict
 if mostrar_b: fig_main.add_trace(go.Scatter(x=t, y=conc_b, name="[B]", line=dict(color='green', width=3)))
 if mostrar_p: fig_main.add_trace(go.Scatter(x=t, y=conc_p, name="[Produto]", line=dict(color='blue', width=3)))
 
-if mostrar_meia_vida and modelo == "A → Produto":
+if mostrar_meia_vida:
     c_at, t_at = a0_sid, 0.0
     for i in range(1, 5):
         t_m = c_at/(2*k_sid) if ordem_a_sid==0 else (np.log(2)/k_sid if ordem_a_sid==1 else 1/(k_sid*c_at))
@@ -99,112 +95,95 @@ if mostrar_meia_vida and modelo == "A → Produto":
         if t_at > t[-1]: break
         fig_main.add_shape(type="line", x0=t_at, x1=t_at, y0=0, y1=c_at, line=dict(color="orange", width=1, dash="dot"))
         fig_main.add_shape(type="line", x0=0, x1=t_at, y0=c_at, y1=c_at, line=dict(color="orange", width=1, dash="dot"))
+        fig_main.add_trace(go.Scatter(x=[t_at], y=[c_at], mode='markers+text', text=[f"{t_at:.1f}s"], textposition="top right", marker=dict(color='orange', size=8, symbol='diamond'), name=f'{i}º t½'))
 
 with col2:
     t_lim = float(t[-1])
     if modo_calc == "Velocidade Média":
-        st.subheader(f"Cálculo da Velocidade Média de {nome_alvo}")
-        t1 = st.number_input("Escolha t1", 0.0, t_lim, min(1.0, t_lim/4), key="VM_T1")
-        t2 = st.number_input("Escolha t2", 0.0, t_lim, min(5.0, t_lim/2), key="VM_T2")
+        st.subheader(f"Velocidade Média de {nome_alvo}")
+        t1 = st.number_input("t1", 0.0, t_lim, min(1.0, t_lim/4), key="VM1")
+        t2 = st.number_input("t2", 0.0, t_lim, min(5.0, t_lim/2), key="VM2")
         c1, c2 = np.interp(t1, t, conc_alvo), np.interp(t2, t, conc_alvo)
         v_m = abs(c2 - c1) / (t2 - t1) if t2 != t1 else 0
         st.latex(rf"v_m = \left| \frac{{\Delta {nome_alvo}}}{{\Delta t}} \right|")
         if st.button("Revelar Velocidade Média"):
             st.latex(rf"v_m = \frac{{|{c2:.3f} - {c1:.3f}|}}{{{t2} - {t1}}}")
             st.success(f"Resposta: {v_m:.4f} M/s")
-        fig_main.add_trace(go.Scatter(x=[t1, t2], y=[c1, c2], mode='markers+lines+text', name='Secante', text=[f"{c1:.2f}M", f"{c2:.2f}M"], textposition=["bottom left", "top right"], line=dict(color='yellow', dash='dash')))
+        fig_main.add_trace(go.Scatter(x=[t1, t2], y=[c1, c2], mode='markers+lines+text', name='Secante', text=[f"{c1:.2f}M", f"{c2:.2f}M"], line=dict(color='yellow', dash='dash')))
 
     elif modo_calc == "Velocidade Instantânea":
-        st.subheader(f"Cálculo da Velocidade Instantânea de {nome_alvo}")
-        ti = st.slider("Escolha o instante (t)", 0.0, t_lim, t_lim/2, key="VI_TI")
+        st.subheader(f"Velocidade Instantânea de {nome_alvo}")
+        ti = st.slider("Instante (t)", 0.0, t_lim, t_lim/2)
         ci = np.interp(ti, t, conc_alvo)
-        vi = k_sid * (np.interp(ti, t, conc_a)**ordem_a_sid) * (np.interp(ti, t, conc_b)**(ordem_b_sid if modelo == "A + B → Produto" else 0) if modelo == "A + B → Produto" else 1)
-        slope = -vi
-        b_c = ci - slope * ti
-        t_int_x = -b_c / slope if slope != 0 else t_max
-        st.write(f"Use os pontos da reta tangente:")
-        st.latex(rf"m = \frac{{\Delta {nome_alvo}}}{{\Delta t}} \quad \rightarrow \quad v_{{inst}} = -m")
+        vi = k_sid * (np.interp(ti, t, conc_a)**ordem_a_sid) * (np.interp(ti, t, conc_b)**(ordem_b_sid if modelo=="A+B → Produto" else 0) if modelo=="A+B → Produto" else 1)
+        slope, b_c = -vi, ci - (-vi * ti)
+        t_int_x = -b_c/slope if slope != 0 else t_max
         st.info(f"**Dados da Tangente:**\n\n$\Delta {nome_alvo} = {-b_c:.3f}$ M\n\n$\Delta t = {t_int_x:.3f}$ s")
         if st.button("Revelar Velocidade e Equação"):
-            st.latex(rf"m = \frac{{{-b_c:.3f}}}{{{t_int_x:.3f}}} = {slope:.4f}")
             st.success(f"Velocidade: {vi:.4f} M/s")
             st.latex(rf"{nome_alvo} = {slope:.4f} \cdot t + {b_c:.4f}")
-        if st.button("📥 Salvar Ponto da Tangente"):
+        if st.button("📥 Salvar Ponto"):
             if 'pontos_taxa' not in st.session_state: st.session_state.pontos_taxa = []
             st.session_state.pontos_taxa.append({'[C]': float(ci), 'Velocidade': float(vi)})
-        
         fig_main.add_trace(go.Scatter(x=[0, t_int_x], y=[b_c, 0], mode='lines', name='Tangente', line=dict(color='cyan', width=2)))
-        fig_main.add_trace(go.Scatter(x=[ti], y=[ci], mode='markers', name='Ponto Medido', marker=dict(color='white', size=10, line=dict(color='black', width=2))))
-        fig_main.add_trace(go.Scatter(x=[0, t_int_x], y=[b_c, 0], mode='markers+text', name='Interceptos', text=[f"(0.00, {b_c:.2f} M)", f"({t_int_x:.2f} s, 0.00)"], textposition="top right", marker=dict(color='yellow', symbol='x')))
-        fig_main.add_shape(type="line", x0=0, x1=0, y0=0, y1=b_c, line=dict(color="cyan", dash="dot"))
-        fig_main.add_shape(type="line", x0=0, x1=t_int_x, y0=0, y1=0, line=dict(color="cyan", dash="dot"))
+        fig_main.add_trace(go.Scatter(x=[0, t_int_x], y=[b_c, 0], mode='markers+text', text=[f"(0, {b_c:.2f})", f"({t_int_x:.2f}, 0)"], marker=dict(color='yellow', symbol='x'), name="Interceptos"))
+        fig_main.add_trace(go.Scatter(x=[0, 0, t_int_x], y=[0, b_c, 0], mode='lines', showlegend=False, line=dict(color='cyan', dash='dot')))
 
 with col1:
     fig_main.update_layout(xaxis_title="Tempo (s)", yaxis_title="Molaridade (M)", template="plotly_dark")
     st.plotly_chart(fig_main, use_container_width=True)
 
-# --- Método Diferencial ---
+# --- Método Diferencial (Davidson College) ---
 st.divider()
 st.header("🔬 Método Diferencial: Velocidade vs Concentração")
 c_t1, c_t2 = st.columns([2, 1])
 with c_t2:
-    st.write("### Coleta de Dados")
-    linearizar_dif = st.checkbox("Plotar ln(v) vs ln[C]", key="CHK_LOG_LOG")
-    mostrar_tendencia = st.checkbox("📈 Linha de Tendência", key="CHK_TENDENCIA")
-    if st.button("🗑️ Limpar Pontos Coletados"):
-        st.session_state.pontos_taxa = []
-        st.rerun()
-    if 'pontos_taxa' in st.session_state and st.session_state.pontos_taxa:
-        st.dataframe(st.session_state.pontos_taxa, hide_index=True)
+    linearizar_dif = st.checkbox("Plotar ln(v) vs ln[C]", key="LOG_LOG")
+    mostrar_tendencia = st.checkbox("📈 Linha de Tendência", key="TRD")
+    if st.button("🗑️ Limpar Pontos"): st.session_state.pontos_taxa = []; st.rerun()
+    if 'pontos_taxa' in st.session_state and st.session_state.pontos_taxa: st.dataframe(st.session_state.pontos_taxa, hide_index=True)
 
 with c_t1:
     fig_taxa = go.Figure()
     if 'pontos_taxa' in st.session_state and st.session_state.pontos_taxa:
         c_vals = np.array([p['[C]'] for p in st.session_state.pontos_taxa])
         v_vals = np.array([p['Velocidade'] for p in st.session_state.pontos_taxa])
-        log_c, log_v = np.log(c_vals + 1e-9), np.log(v_vals + 1e-9)
-
+        lc, lv = np.log(c_vals + 1e-9), np.log(v_vals + 1e-9)
         if linearizar_dif:
-            fig_taxa.add_trace(go.Scatter(x=log_c, y=log_v, mode='markers', name='Dados', marker=dict(color='cyan', size=10)))
-            fig_taxa.update_layout(xaxis_title=f"ln{nome_alvo}", yaxis_title="ln(v)")
-            if mostrar_tendencia and len(set(log_c)) > 1:
-                z = np.polyfit(log_c, log_v, 1)
-                xr = np.linspace(min(log_c), max(log_c), 100)
+            fig_taxa.add_trace(go.Scatter(x=lc, y=lv, mode='markers', name='Dados', marker=dict(color='cyan')))
+            if mostrar_tendencia and len(set(lc)) > 1:
+                z = np.polyfit(lc, lv, 1)
+                xr = np.linspace(lc.min(), lc.max(), 100)
                 fig_taxa.add_trace(go.Scatter(x=xr, y=np.poly1d(z)(xr), mode='lines', name=f'm={z[0]:.2f}', line=dict(color='yellow', dash='dash')))
+            fig_taxa.update_layout(xaxis_title="ln[C]", yaxis_title="ln(v)")
         else:
-            fig_taxa.add_trace(go.Scatter(x=c_vals, y=v_vals, mode='markers', name='Medições', marker=dict(color='magenta', size=12, symbol='x')))
-            fig_taxa.update_layout(xaxis_title=f"Concentração {nome_alvo} (M)", yaxis_title="Velocidade (M/s)")
+            fig_taxa.add_trace(go.Scatter(x=c_vals, y=v_vals, mode='markers', name='Medições', marker=dict(color='magenta', symbol='x', size=12)))
             if mostrar_tendencia and len(set(c_vals)) > 1:
-                z = np.polyfit(log_c, log_v, 1)
-                cs = np.linspace(min(c_vals), max(c_vals), 100)
-                fig_taxa.add_trace(go.Scatter(C=cs, y=np.exp(z[1])*(cs**z[0]), mode='lines', name='Ajuste', line=dict(color='yellow', dash='dash')))
-    else:
-        fig_taxa.add_annotation(text="Salve pontos da tangente acima!", showarrow=False, font=dict(color="yellow", size=14))
+                z = np.polyfit(lc, lv, 1)
+                cs = np.linspace(c_vals.min(), c_vals.max(), 100)
+                fig_taxa.add_trace(go.Scatter(x=cs, y=np.exp(z[1])*(cs**z[0]), mode='lines', name='Ajuste', line=dict(color='yellow', dash='dash')))
+            fig_taxa.update_layout(xaxis_title=f"{nome_alvo} (M)", yaxis_title="Velocidade (M/s)", xaxis=dict(autorange="reversed"))
+    else: fig_taxa.add_annotation(text="Salve pontos da tangente acima!", showarrow=False, font=dict(color="yellow", size=14))
     fig_taxa.update_layout(template="plotly_dark", height=400)
     st.plotly_chart(fig_taxa, use_container_width=True)
 
-# --- 2. Linearização ---
+# --- 2. Linearização Inteligente ---
 st.divider()
 st.subheader(f"📈 Linearização para {nome_alvo}")
 c_l1, c_l2 = st.columns([2, 1])
-y_lin, lab_lin = (conc_alvo, nome_alvo) if (ordem_a_sid == 0) else ((np.log(conc_alvo+1e-9), f"ln{nome_alvo}") if ordem_a_sid==1 else (1/(conc_alvo+1e-9), f"1/{nome_alvo}"))
-
+y_lin, lab_lin = (conc_alvo, nome_alvo) if ordem_a_sid==0 else ((np.log(conc_alvo+1e-9), f"ln{nome_alvo}") if ordem_a_sid==1 else (1/(conc_alvo+1e-9), f"1/{nome_alvo}"))
 with c_l2:
-    st.write("### Encontre a Constante k")
+    st.write("### Calcule a Constante k")
     t_r_max = float(t[-1])
-    t1_l = st.number_input("Escolha t1", 0.0, t_r_max, min(1.0, t_r_max/4), key="l1_lin")
-    t2_l = st.number_input("Escolha t2", 0.0, t_r_max, min(5.0, t_r_max/2), key="l2_lin")
+    t1_l = st.number_input("Tempo t1", 0.0, t_r_max, float(t_r_max/4), key="LIN1")
+    t2_l = st.number_input("Tempo t2", 0.0, t_r_max, float(t_r_max/2), key="LIN2")
     y1_l, y2_l = np.interp(t1_l, t, y_lin), np.interp(t2_l, t, y_lin)
     m_l = (y2_l - y1_l) / (t2_l - t1_l) if t2_l != t1_l else 0
-    k_calc = -m_l if ordem_a_sid <= 1 else m_l
-    st.latex(rf"m = \frac{{\Delta y}}{{\Delta x}}")
-    if st.button("Calcular k pelo Gráfico"):
-        st.success(f"k calculado: {abs(k_calc):.4f}")
-
+    if st.button("Calcular k pelo Gráfico"): st.success(f"k calculado: {abs(m_l):.4f}")
 with c_l1:
     fig_lin = go.Figure(go.Scatter(x=t, y=y_lin, name="Linearização", line=dict(color='orange', width=2)))
-    fig_lin.add_trace(go.Scatter(x=[t1_l, t2_l], y=[y1_l, y2_l], mode='markers+text', text=[f"y={y1_l:.2f}", f"y={y2_l:.2f}"], textposition="top right", marker=dict(color='white', symbol='x', size=10)))
-    fig_lin.update_layout(template="plotly_dark", height=350, yaxis_title=lab_lin, xaxis=dict(range=[0, t_r_max]))
+    fig_lin.add_trace(go.Scatter(x=[t1_l, t2_l], y=[y1_l, y2_l], mode='markers+text', text=[f"y={y1_l:.2f}", f"y={y2_l:.2f}"], textposition="top right", marker=dict(color='white', symbol='x', size=10), name="Pontos"))
+    fig_lin.update_layout(template="plotly_dark", height=350, yaxis_title=lab_lin, xaxis=dict(range=[0, t_r_max], title="Tempo (s)"))
     st.plotly_chart(fig_lin, use_container_width=True)
 
 # --- 3. Histórico ---
@@ -212,14 +191,12 @@ st.divider()
 st.header("📚 Comparador de Curvas")
 if 'historico' not in st.session_state: st.session_state.historico = []
 h1, h2, h3 = st.columns(3)
-nc, cc, kc = h1.number_input("Ordem", 0.0, 3.0, 1.0, step=0.5, key="h_n"), h2.number_input("[A]₀", 0.1, 10.0, 2.0, key="h_c"), h3.number_input("k", 0.01, 5.0, 0.45, key="h_k")
+nc, cc, kc = h1.number_input("Ordem", 0.0, 3.0, 1.0, step=0.5), h2.number_input("[A]₀", 0.1, 10.0, 2.0), h3.number_input("k", 0.01, 5.0, 0.45)
 if st.button("🚀 Gravar Curva"):
     tc = np.linspace(0, t_max, 1000)
     sc = odeint(lambda y,t,k,n: [-k*(y[0]**n)], [cc], tc, args=(kc, nc))[:,0]
     st.session_state.historico.append({'t': tc, 'y': sc, 'lab': f"n:{nc}|k:{kc}|[A]₀:{cc}"})
-if st.button("🗑️ Resetar Histórico"):
-    st.session_state.historico = []
-    st.rerun()
+if st.button("🗑️ Limpar Histórico"): st.session_state.historico = []; st.rerun()
 fig_h = go.Figure()
 for c in st.session_state.historico: fig_h.add_trace(go.Scatter(x=c['t'], y=c['y'], name=c['lab'], mode='lines'))
 fig_h.update_layout(template="plotly_dark", height=400, xaxis_title="Tempo (s)", yaxis_title="Molaridade (M)")
