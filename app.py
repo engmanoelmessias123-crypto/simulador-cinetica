@@ -191,4 +191,34 @@ with c_l2:
     t_r_max = float(t[-1])
     t1_l = st.number_input("Escolha t1", 0.0, t_r_max, float(t_r_max/4), key="L1")
     t2_l = st.number_input("Escolha t2", 0.0, t_r_max, float(t_r_max/2), key="L2")
-    y1_l, y2_l = np.interp(t1_l,
+    y1_l, y2_l = np.interp(t1_l, t, y_lin), np.interp(t2_l, t, y_lin)
+    m_l = (y2_l - y1_l) / (t2_l - t1_l) if t2_l != t1_l else 0
+    st.latex(rf"m = \frac{{\Delta y}}{{\Delta x}}")
+    if st.button("Calcular k pelo Gráfico"): 
+        st.latex(rf"m = \frac{{{y2_l:.3f} - {y1_l:.3f}}}{{{t2_l} - {t1_l}}} = {m_l:.4f}")
+        st.success(f"k calculado: {abs(m_l):.4f}")
+with c_l1:
+    fig_lin = go.Figure(go.Scatter(x=t, y=y_lin, name="Linearização", line=dict(color='orange', width=2)))
+    fig_lin.add_trace(go.Scatter(x=[t1_l, t2_l], y=[y1_l, y2_l], mode='markers+text', text=[f"y={y1_l:.2f}", f"y={y2_l:.2f}"], textposition="top right", marker=dict(color='white', symbol='x', size=10)))
+    fig_lin.update_layout(template="plotly_dark", height=350, yaxis_title=lab_lin, xaxis=dict(range=[0, t_r_max], title="Tempo (s)"))
+    st.plotly_chart(fig_lin, use_container_width=True)
+
+# --- 3. Simulador de Cenários Cinéticos (Ex-Comparador) ---
+st.divider()
+st.header("🧪 Teste de Hipóteses e Validação Cinética")
+if 'historico' not in st.session_state: st.session_state.historico = []
+h1, h2, h3 = st.columns(3)
+nc, cc, kc = h1.number_input("Ordem", 0.0, 3.0, 1.0, step=0.5, key="hc_n"), h2.number_input("[A]₀ Inicial", 0.1, 10.0, 2.0, key="hc_c"), h3.number_input("Constante k", 0.0001, 5.0, 0.45, format="%.4f", key="hc_k")
+if st.button("🚀 Gravar Curva Teórica"):
+    tc = np.linspace(0, t_max, 1000)
+    sc = odeint(lambda y,t,k,n: [-k*(y[0]**n)], [cc], tc, args=(kc, nc))[:,0]
+    legenda_detalhada = f"Ordem: {nc} | [A]₀: {cc:.2f} M | k: {kc:.4f}"
+    st.session_state.historico.append({'t': tc, 'y': sc, 'lab': legenda_detalhada})
+if st.button("🗑️ Limpar Histórico"): st.session_state.historico = []; st.rerun()
+fig_h = go.Figure()
+if not st.session_state.historico:
+    fig_h.add_annotation(text="Adicione curvas para comparar cenários", showarrow=False)
+else:
+    for c in st.session_state.historico: fig_h.add_trace(go.Scatter(x=c['t'], y=c['y'], name=c['lab']))
+fig_h.update_layout(template="plotly_dark", height=450, xaxis_title="Tempo (s)", yaxis_title="Molaridade (M)")
+st.plotly_chart(fig_h, use_container_width=True)
