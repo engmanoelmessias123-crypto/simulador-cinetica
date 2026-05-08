@@ -212,7 +212,7 @@ with c_l1:
 
 # --- 3. Teste de Hipóteses ---
 st.divider()
-st.header("🧪 Teste de Hipóteses e Validação Cinética")
+st.header("🧪 Simulador de Cenários Cinéticos")
 if 'historico' not in st.session_state: st.session_state.historico = []
 h1, h2, h3 = st.columns(3)
 nc, cc, kc = h1.number_input("Ordem", 0.0, 3.0, 1.0, step=0.5, key="hc_n"), h2.number_input("[A]₀ Inicial (M)", 0.1, 10.0, 2.0, key="hc_c"), h3.number_input("Constante k", 0.0001, 5.0, 0.45, format="%.4f", key="hc_k")
