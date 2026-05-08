@@ -12,7 +12,6 @@ esconder_menu = """
     header {visibility: hidden !important;}
     footer {visibility: hidden !important;}
     .stApp [data-testid="stToolbar"] {display: none !important;}
-    [data-testid="stHeaderActionElements"] {display: none !important;}
     </style>
     """
 st.markdown(esconder_menu, unsafe_allow_html=True)
@@ -34,7 +33,7 @@ if modo_desafio:
     if 'misterio_k' not in st.session_state:
         st.session_state.misterio_k = round(np.random.uniform(0.1, 1.5), 2)
         st.session_state.misterio_ordem = int(np.random.choice([0, 1, 2]))
-    st.sidebar.success("**Modo Ativado!**\nVá na aba de Linearização e descubra a Ordem e a constante 'k'.")
+    st.sidebar.success("**Modo Ativado!**\nDescubra a Ordem e a constante 'k' desta substância.")
     if st.sidebar.button("🔄 Gerar Nova Substância"):
         st.session_state.misterio_k = round(np.random.uniform(0.1, 1.5), 2)
         st.session_state.misterio_ordem = int(np.random.choice([0, 1, 2]))
@@ -59,7 +58,7 @@ else:
     sol = odeint(modelo_cinetico, [a0_sid, 0], t, args=(k_sid, ordem_a_sid, 0, modelo))
     conc_a, conc_p, conc_b = sol[:, 0], sol[:, 1], np.zeros_like(t)
 
-# Trava da Realidade Física [cite: 74, 1016]
+# Trava da Realidade Física
 limite_zero = 1e-5
 indices_validos = (conc_a > limite_zero) & (conc_b > limite_zero if modelo == "A + B → Produto" else True)
 t, conc_a, conc_p = t[indices_validos], conc_a[indices_validos], conc_p[indices_validos]
@@ -70,12 +69,13 @@ st.sidebar.divider()
 mostrar_a = st.sidebar.checkbox("Reagente [A]", value=True)
 mostrar_b = st.sidebar.checkbox("Reagente [B]", value=True) if modelo == "A + B → Produto" else False
 mostrar_p = st.sidebar.checkbox("Produto", value=True)
-mostrar_meia_vida = st.sidebar.checkbox("⏱️ Meia-Vida (t½)", value=False) if modelo == "A → Produto" else False
+mostrar_meia_vida = st.sidebar.checkbox("⏱️ Meia-Vida (t½)", value=False) if (modelo == "A → Produto") else False
 
 st.sidebar.divider()
 modo_calc = st.sidebar.selectbox("O que calcular?", ["Nenhum", "Velocidade Média", "Velocidade Instantânea"])
 reagente_alvo = st.sidebar.radio("Analisar qual?", ["A", "B"]) if modo_calc != "Nenhum" and modelo == "A + B → Produto" else "A"
-conc_alvo, nome_alvo = (conc_a if reagente_alvo == "A" else conc_b), f"[{reagente_alvo}]"
+conc_alvo = conc_a if reagente_alvo == "A" else conc_b
+nome_alvo = f"[{reagente_alvo}]"
 mostrar_alvo = mostrar_a if reagente_alvo == "A" else mostrar_b
 
 # --- 1. Gráfico Principal ---
@@ -86,7 +86,7 @@ if mostrar_a: fig_main.add_trace(go.Scatter(x=t, y=conc_a, name="[A]", line=dict
 if mostrar_b: fig_main.add_trace(go.Scatter(x=t, y=conc_b, name="[B]", line=dict(color='green', width=3)))
 if mostrar_p: fig_main.add_trace(go.Scatter(x=t, y=conc_p, name="[Produto]", line=dict(color='blue', width=3)))
 
-if mostrar_meia_vida: # [cite: 1024, 1078]
+if mostrar_meia_vida:
     c_at, t_at = a0_sid, 0.0
     for i in range(1, 5):
         t_m = c_at/(2*k_sid) if ordem_a_sid==0 else (np.log(2)/k_sid if ordem_a_sid==1 else 1/(k_sid*c_at))
@@ -95,7 +95,8 @@ if mostrar_meia_vida: # [cite: 1024, 1078]
         if t_at > t[-1]: break
         fig_main.add_shape(type="line", x0=t_at, x1=t_at, y0=0, y1=c_at, line=dict(color="orange", width=1, dash="dot"))
         fig_main.add_shape(type="line", x0=0, x1=t_at, y0=c_at, y1=c_at, line=dict(color="orange", width=1, dash="dot"))
-        fig_main.add_trace(go.Scatter(x=[t_at], y=[c_at], mode='markers+text', text=[f"{t_at:.1f}s"], textposition="top right", marker=dict(color='orange', size=8, symbol='diamond'), name=f'{i}º t½'))
+        # CORREÇÃO: .2f para evitar intervalos visuais diferentes na 1ª ordem
+        fig_main.add_trace(go.Scatter(x=[t_at], y=[c_at], mode='markers+text', text=[f"{t_at:.2f}s"], textposition="top right", marker=dict(color='orange', size=8, symbol='diamond'), name=f'{i}º t½'))
 
 with col2:
     t_lim = float(t[-1])
@@ -110,7 +111,7 @@ with col2:
             st.latex(rf"v_m = \frac{{|{c2:.3f} - {c1:.3f}|}}{{{t2} - {t1}}}")
             st.success(f"Resposta: {v_m:.4f} M/s")
         if mostrar_alvo:
-            fig_main.add_trace(go.Scatter(x=[t1, t2], y=[c1, c2], mode='markers+lines+text', name='Secante', text=[f"{c1:.3f}M", f"{c2:.3f}M"], line=dict(color='yellow', dash='dash', width=2)))
+            fig_main.add_trace(go.Scatter(x=[t1, t2], y=[c1, c2], mode='markers+lines+text', name='Secante', text=[f"{c1:.3f}M", f"{c2:.3f}M"], line=dict(color='yellow', dash='dash')))
 
     elif modo_calc == "Velocidade Instantânea":
         st.subheader(f"Cálculo da Velocidade Instantânea de {nome_alvo}")
@@ -132,7 +133,7 @@ with col2:
         
         if mostrar_alvo:
             fig_main.add_trace(go.Scatter(x=[0, t_int_x], y=[b_c, 0], mode='lines', name='Tangente', line=dict(color='cyan', width=2)))
-            # BOLINHA BRANCA COM BORDA PRETA [cite: 1274, 1276]
+            # REINTRODUZIDA: BOLINHA BRANCA COM BORDA PRETA
             fig_main.add_trace(go.Scatter(x=[ti], y=[ci], mode='markers', name='Ponto Medido', marker=dict(color='white', size=10, symbol='circle', line=dict(color='black', width=2))))
             fig_main.add_trace(go.Scatter(x=[0, t_int_x], y=[b_c, 0], mode='markers+text', text=[f"(0.00, {b_c:.2f} M)", f"({t_int_x:.2f} s, 0.00)"], textposition="top right", marker=dict(color='yellow', symbol='x'), name="Interceptos"))
             fig_main.add_trace(go.Scatter(x=[0, 0, t_int_x], y=[0, b_c, 0], mode='lines', showlegend=False, line=dict(color='cyan', dash='dot', width=2)))
@@ -147,12 +148,15 @@ st.header("🔬 Método Diferencial: Velocidade vs Concentração")
 c_t1, c_t2 = st.columns([2, 1])
 with c_t2:
     st.write("### Coleta de Dados")
-    st.write("Inspirado no **Davidson College**, aja como um pesquisador! [cite: 1045, 1214]")
+    st.write("Inspirado no **Davidson College**, aja como um pesquisador!")
     st.markdown("1. Use a Velocidade Instantânea acima.\n2. Meça a tangente em tempos diferentes.\n3. Salve os pontos para montar sua curva.")
     linearizar_dif = st.checkbox("Plotar ln(v) vs ln[C] para achar a Ordem", key="LOGLOG")
     mostrar_tendencia = st.checkbox("📈 Traçar Linha de Tendência", key="TRD")
-    if st.button("🗑️ Limpar Pontos"): st.session_state.pontos_taxa = []; st.rerun()
-    if 'pontos_taxa' in st.session_state and st.session_state.pontos_taxa: st.dataframe(st.session_state.pontos_taxa, hide_index=True)
+    if st.button("🗑️ Limpar Pontos Coletados"):
+        st.session_state.pontos_taxa = []
+        st.rerun()
+    if 'pontos_taxa' in st.session_state and st.session_state.pontos_taxa:
+        st.dataframe(st.session_state.pontos_taxa, hide_index=True)
 
 with c_t1:
     fig_taxa = go.Figure()
@@ -163,14 +167,14 @@ with c_t1:
         if linearizar_dif:
             fig_taxa.add_trace(go.Scatter(x=log_c, y=log_v, mode='markers', name='Dados', marker=dict(color='cyan', size=10)))
             fig_taxa.update_layout(xaxis_title=f"ln({nome_alvo})", yaxis_title="ln(v)")
-            if mostrar_tendencia and len(set(log_c)) > 1: # [cite: 1146, 1218]
+            if mostrar_tendencia and len(set(log_c)) > 1:
                 z = np.polyfit(log_c, log_v, 1)
                 xr = np.linspace(log_c.min(), log_c.max(), 100)
                 fig_taxa.add_trace(go.Scatter(x=xr, y=np.poly1d(z)(xr), mode='lines', name=f'Tendência (Ordem m={z[0]:.2f})', line=dict(color='yellow', dash='dash', width=2)))
         else:
-            fig_taxa.add_trace(go.Scatter(x=c_vals, y=v_vals, mode='markers', name='Medições', marker=dict(color='magenta', size=12, symbol='x')))
+            fig_taxa.add_trace(go.Scatter(x=c_vals, y=v_vals, mode='markers', name='Medições', marker=dict(color='magenta', symbol='x', size=12)))
             if mostrar_tendencia:
-                if len(set(v_vals)) == 1 or (ordem_a_sid == 0 and not modo_desafio): # [cite: 1269, 1271]
+                if len(set(v_vals)) == 1 or (ordem_a_sid == 0 and not modo_desafio):
                     fig_taxa.add_trace(go.Scatter(x=[c_vals.min(), c_vals.max()], y=[v_vals[0], v_vals[0]], mode='lines', name='Ajuste (v=k)', line=dict(color='yellow', dash='dash', width=2)))
                 elif len(set(c_vals)) > 1:
                     z = np.polyfit(log_c, log_v, 1)
@@ -185,11 +189,11 @@ with c_t1:
 st.divider()
 st.subheader(f"📈 Linearização para {nome_alvo}")
 c_l1, c_l2 = st.columns([2, 1])
-y_lin = (conc_a if reagente_alvo == "A" else conc_b) if ordem_a_sid==0 else ((np.log((conc_a if reagente_alvo == "A" else conc_b)+1e-9)) if ordem_a_sid==1 else (1/((conc_a if reagente_alvo == "A" else conc_b)+1e-9)))
+y_lin = conc_alvo if ordem_a_sid==0 else ((np.log(conc_alvo+1e-9)) if ordem_a_sid==1 else (1/(conc_alvo+1e-9)))
 lab_lin = nome_alvo if ordem_a_sid==0 else (f"ln({nome_alvo})" if ordem_a_sid==1 else f"1/{nome_alvo}")
 
 with c_l2:
-    st.write("### Calcule a Constante $k$ [cite: 1052, 1225]")
+    st.write("### Calcule a Constante $k$")
     st.write("A inclinação ($m$) desta reta corresponde ao valor de k!")
     t_r_max = float(t[-1])
     t1_l = st.number_input("Escolha t1", 0.0, t_r_max, float(t_r_max/4), key="L1")
@@ -208,13 +212,14 @@ with c_l1:
 
 # --- 3. Teste de Hipóteses ---
 st.divider()
-st.header("🧪 Teste de Hipóteses e Validação Cinética [cite: 1288, 1297]")
+st.header("🧪 Teste de Hipóteses e Validação Cinética")
 if 'historico' not in st.session_state: st.session_state.historico = []
 h1, h2, h3 = st.columns(3)
 nc, cc, kc = h1.number_input("Ordem", 0.0, 3.0, 1.0, step=0.5, key="hc_n"), h2.number_input("[A]₀ Inicial (M)", 0.1, 10.0, 2.0, key="hc_c"), h3.number_input("Constante k", 0.0001, 5.0, 0.45, format="%.4f", key="hc_k")
-if st.button("🚀 Gravar Curva Teórica"): # [cite: 1303, 1308]
+if st.button("🚀 Gravar Curva Teórica"):
     tc = np.linspace(0, t_max, 1000)
     sc = odeint(lambda y,t,k,n: [-k*(y[0]**n)], [cc], tc, args=(kc, nc))[:,0]
+    # LEGENDA DETALHADA RESTAURADA
     legenda_detalhada = f"Ordem: {nc} | [A]₀: {cc:.2f} M | k: {kc:.4f}"
     st.session_state.historico.append({'t': tc, 'y': sc, 'lab': legenda_detalhada})
 if st.button("🗑️ Limpar Histórico"): st.session_state.historico = []; st.rerun()
