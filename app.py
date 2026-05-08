@@ -206,7 +206,7 @@ with c_l1:
 
 # --- 3. Histórico ---
 st.divider()
-st.header("📚 Comparador de Curvas")
+st.header("🚀 Simulador de Cenários Cinéticos")
 if 'historico' not in st.session_state: st.session_state.historico = []
 h1, h2, h3 = st.columns(3)
 nc, cc, kc = h1.number_input("Ordem", 0.0, 3.0, 1.0, step=0.5, key="hc_n"), h2.number_input("[A]₀", 0.1, 10.0, 2.0, key="hc_c"), h3.number_input("k", 0.01, 5.0, 0.45, key="hc_k")
