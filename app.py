@@ -109,4 +109,75 @@ with col2:
     elif modo_calc == "Velocidade Instantânea":
         ti = st.slider("Escolha o instante (t)", 0.0, t_lim, t_lim/2)
         ci = np.interp(ti, t, conc_alvo)
-        vi = k_sid * (np.interp(ti, t, conc_a)**ordem_a_sid) * (np.interp(ti,
+        vi = k_sid * (np.interp(ti, t, conc_a)**ordem_a_sid) * (np.interp(ti, t, conc_b)**(ordem_b_sid if modelo=="A+B → Produto" else 0) if modelo=="A+B → Produto" else 1)
+        slope, b_c = -vi, ci - (-vi * ti)
+        t_int_x = -b_c/slope if slope != 0 else t_max
+        st.info(f"**Dados da Tangente:**\n\n$\Delta {nome_alvo} = {-b_c:.3f}$ M\n\n$\Delta t = {t_int_x:.3f}$ s")
+        if st.button("Revelar Velocidade"): st.success(f"Velocidade: {vi:.4f} M/s")
+        if st.button("📥 Salvar Ponto"):
+            if 'pontos_taxa' not in st.session_state: st.session_state.pontos_taxa = []
+            st.session_state.pontos_taxa.append({'[C]': float(ci), 'Velocidade': float(vi)})
+        fig_main.add_trace(go.Scatter(x=[0, t_int_x], y=[b_c, 0], mode='lines', name='Tangente', line=dict(color='cyan', width=2)))
+        fig_main.add_trace(go.Scatter(x=[0, t_int_x], y=[b_c, 0], mode='markers+text', text=[f"(0, {b_c:.2f})", f"({t_int_x:.2f}, 0)"], marker=dict(color='yellow', symbol='x')))
+        fig_main.add_trace(go.Scatter(x=[0, 0, t_int_x], y=[0, b_c, 0], mode='lines', showlegend=False, line=dict(color='cyan', dash='dot')))
+
+with col1:
+    fig_main.update_layout(xaxis_title="Tempo (s)", yaxis_title="Molaridade (M)", template="plotly_dark")
+    st.plotly_chart(fig_main, use_container_width=True)
+
+# --- Método Diferencial ---
+st.divider()
+st.header("🔬 Método Diferencial: Velocidade vs Concentração")
+c_t1, c_t2 = st.columns([2, 1])
+with c_t2:
+    linearizar_dif = st.checkbox("Plotar ln(v) vs ln[C]", key="CHK_LOG_LOG")
+    mostrar_tendencia = st.checkbox("📈 Linha de Tendência", key="CHK_TENDENCIA")
+    if st.button("🗑️ Limpar"): st.session_state.pontos_taxa = []; st.rerun()
+    if 'pontos_taxa' in st.session_state and st.session_state.pontos_taxa: st.dataframe(st.session_state.pontos_taxa)
+
+with c_t1:
+    fig_taxa = go.Figure()
+    if 'pontos_taxa' in st.session_state and st.session_state.pontos_taxa:
+        c_vals, v_vals = np.array([p['[C]'] for p in st.session_state.pontos_taxa]), np.array([p['Velocidade'] for p in st.session_state.pontos_taxa])
+        lc, lv = np.log(c_vals + 1e-9), np.log(v_vals + 1e-9)
+        if linearizar_dif:
+            fig_taxa.add_trace(go.Scatter(x=lc, y=lv, mode='markers', name='Dados'))
+            if mostrar_tendencia and len(set(lc)) > 1:
+                z = np.polyfit(lc, lv, 1)
+                fig_taxa.add_trace(go.Scatter(x=lc, y=np.poly1d(z)(lc), mode='lines', name=f'm={z[0]:.2f}', line=dict(color='yellow', dash='dash')))
+        else:
+            fig_taxa.add_trace(go.Scatter(x=c_vals, y=v_vals, mode='markers', name='Medições'))
+            if mostrar_tendencia and len(set(c_vals)) > 1:
+                z = np.polyfit(lc, lv, 1)
+                cs = np.linspace(min(c_vals), max(c_vals), 100)
+                fig_taxa.add_trace(go.Scatter(x=cs, y=np.exp(z[1])*(cs**z[0]), mode='lines', name='Ajuste', line=dict(color='yellow', dash='dash')))
+    fig_taxa.update_layout(template="plotly_dark", height=400)
+    st.plotly_chart(fig_taxa, use_container_width=True)
+
+# --- Linearização e Histórico ---
+st.divider()
+st.subheader(f"📈 Linearização para {nome_alvo}")
+c_l1, c_l2 = st.columns([2, 1])
+y_lin, lab_lin = (conc_alvo, nome_alvo) if ordem_a_sid==0 else ((np.log(conc_alvo+1e-9), f"ln{nome_alvo}") if ordem_a_sid==1 else (1/(conc_alvo+1e-9), f"1/{nome_alvo}"))
+with c_l2:
+    t1_l = st.number_input("t1", 0.0, float(t[-1]), float(t[-1]/4), key="l1")
+    t2_l = st.number_input("t2", 0.0, float(t[-1]), float(t[-1]/2), key="l2")
+    m_l = (np.interp(t2_l, t, y_lin) - np.interp(t1_l, t, y_lin)) / (t2_l - t1_l) if t2_l != t1_l else 0
+    if st.button("Calcular k"): st.success(f"k: {abs(m_l):.4f}")
+with c_l1:
+    fig_lin = go.Figure(go.Scatter(x=t, y=y_lin, line=dict(color='orange')))
+    fig_lin.update_layout(template="plotly_dark", height=350, yaxis_title=lab_lin)
+    st.plotly_chart(fig_lin, use_container_width=True)
+
+st.divider()
+st.header("📚 Comparador")
+if 'historico' not in st.session_state: st.session_state.historico = []
+h1, h2, h3 = st.columns(3)
+nc, cc, kc = h1.number_input("Ordem", 0.0, 3.0, 1.0), h2.number_input("[A]₀", 0.1, 10.0, 2.0), h3.number_input("k", 0.01, 5.0, 0.45)
+if st.button("🚀 Gravar"):
+    tc = np.linspace(0, t_max, 1000)
+    st.session_state.historico.append({'t': tc, 'y': odeint(lambda y,t,k,n: [-k*(y[0]**n)], [cc], tc, args=(kc, nc))[:,0], 'lab': f"n:{nc}|k:{kc}"})
+fig_h = go.Figure()
+for c in st.session_state.historico: fig_h.add_trace(go.Scatter(x=c['t'], y=c['y'], name=c['lab']))
+fig_h.update_layout(template="plotly_dark", height=400)
+st.plotly_chart(fig_h, use_container_width=True)
